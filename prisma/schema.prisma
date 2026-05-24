@@ -1,0 +1,146 @@
+// Vynex Agenda - Prisma Schema
+// Beauty/Barbershop Appointment Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Plan {
+  FREE
+  PRO
+  STUDIO
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password       String? // Hashed password (null if using OAuth)
+  authProviderId String? // For OAuth providers (Google, etc.)
+  businessName   String
+  plan           Plan     @default(FREE)
+  currency       String   @default("USD")
+  themeColor     String   @default("#6366f1") // Primary brand color
+  themeDarkMode  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  teamMembers  TeamMember[]
+  clients      Client[]
+  services     Service[]
+  appointments Appointment[]
+
+  @@map("users")
+}
+
+model TeamMember {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  role       String // e.g. "Lash Tech", "Barber", "Stylist"
+  email      String?
+  phone      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  business     User          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("team_members")
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  businessId     String
+  name           String
+  phone          String?
+  email          String?
+  notes          String?
+  pendingBalance Float    @default(0)
+  totalSpent     Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  business     User          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("clients")
+}
+
+model Service {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  duration   Int // Duration in minutes
+  price      Float
+  category   String? // e.g. "Lashes", "Hair", "Nails"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  business            User                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointmentServices AppointmentService[]
+
+  @@map("services")
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  businessId   String
+  clientId     String
+  teamMemberId String? // Optional - only for Studio plan with team
+  date         DateTime // The date of the appointment
+  startTime    String // e.g. "09:00"
+  endTime      String // e.g. "10:30"
+  status       AppointmentStatus @default(PENDING)
+  totalAmount  Float             @default(0)
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  // Relations
+  business   User                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client     Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  teamMember TeamMember?          @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  services   AppointmentService[]
+
+  @@map("appointments")
+}
+
+// JOIN TABLE: Allows multiple services per appointment
+model AppointmentService {
+  id                   String @id @default(cuid())
+  appointmentId        String
+  serviceId            String
+  priceAtTimeOfBooking Float // Snapshot of price when booked
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, serviceId])
+  @@map("appointment_services")
+}
