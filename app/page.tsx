@@ -9,6 +9,7 @@ import {
   MessageCircle,
   TrendingUp,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -34,7 +35,16 @@ export default function HomePage() {
             {t("home.appointmentsToday", { count: todayAppointments.length })}
           </p>
         </div>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-1.5">
+          <Link
+            href="/settings"
+            className="w-9 h-9 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-rose hover:border-rose/30 transition-all duration-200 active:scale-95"
+            aria-label="Settings"
+          >
+            <Settings size={16} strokeWidth={1.8} />
+          </Link>
+          <LanguageSwitcher />
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -91,7 +101,7 @@ export default function HomePage() {
       <div>
         <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider mb-3">{t("home.quickActions")}</h3>
         <div className="flex gap-3">
-          <Link href="/appointments" className="flex-1 flex flex-col items-center gap-1.5 glass-card rounded-2xl py-3.5 tap-scale hover:border-rose/30 transition-all duration-200">
+          <Link href="/appointments/new" className="flex-1 flex flex-col items-center gap-1.5 glass-card rounded-2xl py-3.5 tap-scale hover:border-rose/30 transition-all duration-200">
             <CalendarPlus size={20} className="text-rose" />
             <span className="text-[11px] font-medium text-plum">{t("home.newBooking")}</span>
           </Link>

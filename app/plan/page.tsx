@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Crown, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, Sparkles, Zap, Lock } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
@@ -15,14 +15,15 @@ export default function PlanPage() {
       description: t("plan.freeDesc"),
       icon: Zap,
       features: [
-        t("plan.feat.20clients"),
-        t("plan.feat.basicScheduling"),
-        t("plan.feat.manualReminders"),
-        t("plan.feat.1provider"),
+        { text: t("plan.feat.20clients"), locked: false },
+        { text: t("plan.feat.basicScheduling"), locked: false },
+        { text: t("plan.feat.manualReminders"), locked: false },
+        { text: t("plan.feat.1provider"), locked: false },
       ],
       cta: t("plan.currentPlan"),
       current: true,
       featured: false,
+      badge: null,
     },
     {
       name: t("plan.pro"),
@@ -31,16 +32,18 @@ export default function PlanPage() {
       description: t("plan.proDesc"),
       icon: Sparkles,
       features: [
-        t("plan.feat.unlimitedClients"),
-        t("plan.feat.smartScheduling"),
-        t("plan.feat.whatsappReminders"),
-        t("plan.feat.revenueAnalytics"),
-        t("plan.feat.clientNotes"),
-        t("plan.feat.prioritySupport"),
+        { text: t("plan.feat.unlimitedClients"), locked: false },
+        { text: t("plan.feat.smartScheduling"), locked: false },
+        { text: t("plan.feat.whatsappReminders"), locked: false },
+        { text: t("plan.feat.revenueAnalytics"), locked: false },
+        { text: t("plan.feat.clientNotes"), locked: false },
+        { text: t("plan.feat.themeCustomizer"), locked: false },
+        { text: t("plan.feat.prioritySupport"), locked: false },
       ],
       cta: t("plan.upgradePro"),
       current: false,
       featured: true,
+      badge: "PRO",
     },
     {
       name: t("plan.studio"),
@@ -49,18 +52,26 @@ export default function PlanPage() {
       description: t("plan.studioDesc"),
       icon: Crown,
       features: [
-        t("plan.feat.everythingPro"),
-        t("plan.feat.5team"),
-        t("plan.feat.teamCalendar"),
-        t("plan.feat.advancedAnalytics"),
-        t("plan.feat.customBranding"),
-        t("plan.feat.apiAccess"),
-        t("plan.feat.accountManager"),
+        { text: t("plan.feat.everythingPro"), locked: false },
+        { text: t("plan.feat.5team"), locked: false },
+        { text: t("plan.feat.teamCalendar"), locked: false },
+        { text: t("plan.feat.advancedAnalytics"), locked: false },
+        { text: t("plan.feat.customBranding"), locked: false },
+        { text: t("plan.feat.apiAccess"), locked: false },
+        { text: t("plan.feat.accountManager"), locked: false },
       ],
       cta: t("plan.upgradeStudio"),
       current: false,
       featured: false,
+      badge: "STUDIO",
     },
+  ];
+
+  // Pro-gated features shown in a separate section
+  const proFeatures = [
+    { text: t("plan.feat.themeCustomizer"), icon: "🎨" },
+    { text: t("plan.feat.advancedAnalytics"), icon: "📊" },
+    { text: t("plan.feat.customBranding"), icon: "✨" },
   ];
 
   return (
@@ -72,6 +83,28 @@ export default function PlanPage() {
           <p className="text-xs text-plum-light mt-1">{t("plan.subtitle")}</p>
         </div>
         <LanguageSwitcher />
+      </div>
+
+      {/* Pro Features Banner */}
+      <div className="glass-card-solid rounded-2xl p-4 premium-shadow border border-amber-200/30 bg-gradient-to-br from-amber-50/40 to-transparent">
+        <div className="flex items-center gap-2 mb-3">
+          <Crown size={16} className="text-amber-600" />
+          <h3 className="text-xs font-semibold text-plum uppercase tracking-wider">
+            {t("plan.proFeatures")}
+          </h3>
+        </div>
+        <div className="space-y-2">
+          {proFeatures.map((feat) => (
+            <div key={feat.text} className="flex items-center gap-2.5">
+              <span className="text-sm">{feat.icon}</span>
+              <span className="text-xs text-plum flex-1">{feat.text}</span>
+              <span className="flex items-center gap-0.5 text-[9px] font-semibold bg-amber-100/80 text-amber-700 px-1.5 py-0.5 rounded-full border border-amber-200/50">
+                <Lock size={8} />
+                PRO
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Plans */}
@@ -102,7 +135,18 @@ export default function PlanPage() {
                     <Icon size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-plum">{plan.name}</h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-bold text-plum">{plan.name}</h3>
+                      {plan.badge && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                          plan.badge === "PRO"
+                            ? "bg-rose/10 text-rose-dark border border-rose/20"
+                            : "bg-amber-100/80 text-amber-700 border border-amber-200/50"
+                        }`}>
+                          {plan.badge}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-plum-light">{plan.description}</p>
                   </div>
                 </div>
@@ -114,11 +158,11 @@ export default function PlanPage() {
 
               <div className="mt-4 space-y-2.5">
                 {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-2.5">
+                  <div key={feature.text} className="flex items-center gap-2.5">
                     <div className={`w-4 h-4 rounded-full flex items-center justify-center ${plan.featured ? "bg-rose/10" : "bg-green-50"}`}>
                       <Check size={10} className={plan.featured ? "text-rose" : "text-green-500"} />
                     </div>
-                    <span className="text-xs text-plum">{feature}</span>
+                    <span className="text-xs text-plum">{feature.text}</span>
                   </div>
                 ))}
               </div>

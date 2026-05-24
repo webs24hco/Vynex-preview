@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { allAppointments, Appointment } from "@/lib/mockData";
 import { Plus, MessageCircle, Filter, Phone } from "lucide-react";
+import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
@@ -56,7 +57,7 @@ export default function AppointmentsPage() {
       </div>
 
       {/* Appointment Cards */}
-      <div className="space-y-3">
+      <div className="space-y-3 pb-4">
         {filtered.map((appt, index) => (
           <div key={appt.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
             <AppointmentCard appointment={appt} />
@@ -64,10 +65,13 @@ export default function AppointmentsPage() {
         ))}
       </div>
 
-      {/* FAB */}
-      <button className="fixed bottom-28 right-1/2 translate-x-[calc(50%+7.5rem)] w-14 h-14 bg-gradient-to-br from-rose to-rose-dark rounded-full premium-shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all duration-200 active:scale-90 z-40">
+      {/* FAB - links to new appointment page */}
+      <Link
+        href="/appointments/new"
+        className="fixed bottom-24 right-1/2 translate-x-[calc(50%+7.5rem)] w-14 h-14 bg-gradient-to-br from-rose to-rose-dark rounded-full premium-shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-all duration-200 active:scale-90 z-40"
+      >
         <Plus size={24} />
-      </button>
+      </Link>
     </div>
   );
 }

@@ -18,31 +18,33 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[calc(var(--spacing)*112)] floating-nav rounded-2xl z-50">
-      <div className="flex items-center justify-around py-2.5 px-1">
-        {tabs.map((tab) => {
-          const isActive =
-            tab.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(tab.href);
-          const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 tap-scale ${
-                isActive
-                  ? "text-rose bg-rose/10"
-                  : "text-plum-light hover:text-rose"
-              }`}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.2 : 1.6} />
-              <span className={`text-[10px] leading-tight ${isActive ? "font-semibold" : "font-medium"}`}>
-                {tab.label}
-              </span>
-            </Link>
-          );
-        })}
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50">
+      <div className="mx-3 mb-3 floating-nav rounded-2xl">
+        <div className="flex items-center justify-around py-2.5 px-1">
+          {tabs.map((tab) => {
+            const isActive =
+              tab.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(tab.href);
+            const Icon = tab.icon;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 tap-scale ${
+                  isActive
+                    ? "text-rose bg-rose/10"
+                    : "text-plum-light hover:text-rose"
+                }`}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.2 : 1.6} />
+                <span className={`text-[10px] leading-tight ${isActive ? "font-semibold" : "font-medium"}`}>
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

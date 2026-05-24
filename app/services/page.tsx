@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { services } from "@/lib/mockData";
-import { Plus, Edit3, Clock, Tag, X } from "lucide-react";
+import { Plus, Edit3, Clock, Tag } from "lucide-react";
+import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function ServicesPage() {
   const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const categories = ["all", ...Array.from(new Set(services.map((s) => s.category)))];
@@ -28,50 +28,15 @@ export default function ServicesPage() {
           <p className="text-xs text-plum-light mt-0.5">{t("services.listed", { count: services.length })}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAdd(!showAdd)}
+          <Link
+            href="/services/new"
             className="w-9 h-9 rounded-full bg-gradient-to-br from-rose to-rose-dark flex items-center justify-center text-white shadow-sm hover:shadow-md transition-all duration-200 active:scale-90"
           >
             <Plus size={18} />
-          </button>
+          </Link>
           <LanguageSwitcher />
         </div>
       </div>
-
-      {/* Add Service Form (visual state) */}
-      {showAdd && (
-        <div className="glass-card-solid rounded-2xl p-4 premium-shadow-lg space-y-3 animate-scale-in">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-plum">{t("services.newService")}</h3>
-            <button onClick={() => setShowAdd(false)} className="text-plum-light hover:text-plum transition-colors active:scale-90">
-              <X size={16} />
-            </button>
-          </div>
-          <input
-            placeholder={t("services.serviceName")}
-            className="w-full px-4 py-2.5 rounded-xl bg-ivory/60 backdrop-blur-sm border border-rose-light/30 text-sm text-plum placeholder:text-plum-light/60 focus:outline-none focus:border-rose/40 focus:ring-2 focus:ring-rose/10 transition-all"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              placeholder={t("services.duration")}
-              className="px-4 py-2.5 rounded-xl bg-ivory/60 backdrop-blur-sm border border-rose-light/30 text-sm text-plum placeholder:text-plum-light/60 focus:outline-none focus:border-rose/40 focus:ring-2 focus:ring-rose/10 transition-all"
-            />
-            <input
-              placeholder={t("services.price")}
-              className="px-4 py-2.5 rounded-xl bg-ivory/60 backdrop-blur-sm border border-rose-light/30 text-sm text-plum placeholder:text-plum-light/60 focus:outline-none focus:border-rose/40 focus:ring-2 focus:ring-rose/10 transition-all"
-            />
-          </div>
-          <select className="w-full px-4 py-2.5 rounded-xl bg-ivory/60 backdrop-blur-sm border border-rose-light/30 text-sm text-plum focus:outline-none focus:border-rose/40 focus:ring-2 focus:ring-rose/10 transition-all">
-            <option value="">{t("services.selectCategory")}</option>
-            {categories.filter(c => c !== "all").map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <button className="w-full py-2.5 bg-gradient-to-r from-rose to-rose-dark text-white text-sm font-medium rounded-xl hover:shadow-md transition-all duration-200 active:scale-[0.98]">
-            {t("services.addService")}
-          </button>
-        </div>
-      )}
 
       {/* Category Tabs */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -91,7 +56,7 @@ export default function ServicesPage() {
       </div>
 
       {/* Service Cards */}
-      <div className="space-y-3">
+      <div className="space-y-3 pb-4">
         {filtered.map((service, index) => (
           <div
             key={service.id}
