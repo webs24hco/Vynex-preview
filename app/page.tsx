@@ -1,3 +1,5 @@
+"use client";
+
 import { todayAppointments, weekOverview } from "@/lib/mockData";
 import {
   DollarSign,
@@ -9,8 +11,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function HomePage() {
+  const { t } = useLanguage();
   const totalRevenue = todayAppointments.reduce((sum, a) => sum + a.price, 0);
   const pendingCount = todayAppointments.filter((a) => a.status === "pending").length;
   const completedCount = todayAppointments.filter((a) => a.status === "completed").length;
@@ -19,37 +24,42 @@ export default function HomePage() {
   return (
     <div className="px-5 pt-6 space-y-5">
       {/* Header */}
-      <div>
-        <p className="text-sm text-plum-light">Saturday, May 24</p>
-        <h1 className="text-2xl font-bold text-plum mt-1">
-          Good morning, <span className="text-rose">Valentina</span> ✨
-        </h1>
-        <p className="text-sm text-plum-light mt-1">You have {todayAppointments.length} appointments today</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-plum-light font-medium">Saturday, May 24</p>
+          <h1 className="text-2xl font-bold text-plum mt-1 tracking-tight">
+            {t("home.greeting")} <span className="text-rose">Valentina</span> ✨
+          </h1>
+          <p className="text-sm text-plum-light mt-1">
+            {t("home.appointmentsToday", { count: todayAppointments.length })}
+          </p>
+        </div>
+        <LanguageSwitcher />
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           icon={<DollarSign size={18} />}
-          label="Today's Revenue"
+          label={t("home.todaysRevenue")}
           value={`€${totalRevenue}`}
           color="bg-rose/10 text-rose-dark"
         />
         <StatCard
           icon={<Clock size={18} />}
-          label="Completed"
+          label={t("home.completed")}
           value={`${completedCount}/${todayAppointments.length}`}
           color="bg-gold/30 text-plum"
         />
         <StatCard
           icon={<AlertCircle size={18} />}
-          label="Pending"
-          value={`${pendingCount} unconfirmed`}
+          label={t("home.pending")}
+          value={`${pendingCount} ${t("home.unconfirmed")}`}
           color="bg-rose-light/30 text-rose-dark"
         />
         <StatCard
           icon={<TrendingUp size={18} />}
-          label="Week Total"
+          label={t("home.weekTotal")}
           value={`€${weekOverview.reduce((s, d) => s + d.revenue, 0)}`}
           color="bg-plum/5 text-plum"
         />
@@ -57,15 +67,15 @@ export default function HomePage() {
 
       {/* Next Appointment */}
       {nextAppointment && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-rose-light/30">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wide">Next Up</h3>
-            <span className="text-xs bg-rose/10 text-rose-dark px-2 py-0.5 rounded-full font-medium">
+        <div className="glass-card-solid rounded-2xl p-4 premium-shadow">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider">{t("home.nextUp")}</h3>
+            <span className="text-xs bg-rose/10 text-rose-dark px-2.5 py-0.5 rounded-full font-medium">
               {nextAppointment.time}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-rose/20 flex items-center justify-center text-rose-dark font-bold text-sm">
+            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose/30 to-rose-light/40 flex items-center justify-center text-rose-dark font-bold text-sm shadow-sm">
               {nextAppointment.clientName.split(" ").map(n => n[0]).join("")}
             </div>
             <div className="flex-1">
@@ -79,19 +89,19 @@ export default function HomePage() {
 
       {/* Quick Actions */}
       <div>
-        <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wide mb-3">Quick Actions</h3>
+        <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider mb-3">{t("home.quickActions")}</h3>
         <div className="flex gap-3">
-          <Link href="/appointments" className="flex-1 flex flex-col items-center gap-1.5 bg-white rounded-xl py-3 shadow-sm border border-rose-light/20 hover:border-rose transition-colors">
+          <Link href="/appointments" className="flex-1 flex flex-col items-center gap-1.5 glass-card rounded-2xl py-3.5 tap-scale hover:border-rose/30 transition-all duration-200">
             <CalendarPlus size={20} className="text-rose" />
-            <span className="text-[11px] font-medium text-plum">New Booking</span>
+            <span className="text-[11px] font-medium text-plum">{t("home.newBooking")}</span>
           </Link>
-          <Link href="/clients" className="flex-1 flex flex-col items-center gap-1.5 bg-white rounded-xl py-3 shadow-sm border border-rose-light/20 hover:border-rose transition-colors">
+          <Link href="/clients" className="flex-1 flex flex-col items-center gap-1.5 glass-card rounded-2xl py-3.5 tap-scale hover:border-rose/30 transition-all duration-200">
             <MessageCircle size={20} className="text-rose" />
-            <span className="text-[11px] font-medium text-plum">Send Reminder</span>
+            <span className="text-[11px] font-medium text-plum">{t("home.sendReminder")}</span>
           </Link>
-          <Link href="/services" className="flex-1 flex flex-col items-center gap-1.5 bg-white rounded-xl py-3 shadow-sm border border-rose-light/20 hover:border-rose transition-colors">
+          <Link href="/services" className="flex-1 flex flex-col items-center gap-1.5 glass-card rounded-2xl py-3.5 tap-scale hover:border-rose/30 transition-all duration-200">
             <DollarSign size={20} className="text-rose" />
-            <span className="text-[11px] font-medium text-plum">Record Payment</span>
+            <span className="text-[11px] font-medium text-plum">{t("home.recordPayment")}</span>
           </Link>
         </div>
       </div>
@@ -99,12 +109,12 @@ export default function HomePage() {
       {/* Week Overview */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wide">Week Overview</h3>
+          <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider">{t("home.weekOverview")}</h3>
           <Link href="/appointments" className="text-xs text-rose font-medium flex items-center gap-0.5">
-            View all <ChevronRight size={12} />
+            {t("home.viewAll")} <ChevronRight size={12} />
           </Link>
         </div>
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-rose-light/20">
+        <div className="glass-card-solid rounded-2xl p-4 premium-shadow">
           <div className="flex items-end justify-between gap-2 h-24">
             {weekOverview.map((day) => {
               const maxRev = Math.max(...weekOverview.map(d => d.revenue));
@@ -114,7 +124,7 @@ export default function HomePage() {
                 <div key={day.day} className="flex flex-col items-center gap-1 flex-1">
                   <div className="w-full flex flex-col items-center justify-end h-16">
                     <div
-                      className={`w-5 rounded-full transition-all ${isToday ? "bg-rose" : "bg-rose-light/50"}`}
+                      className={`w-5 rounded-full transition-all ${isToday ? "bg-gradient-to-t from-rose to-rose-light" : "bg-rose-light/40"}`}
                       style={{ height: `${Math.max(height, 4)}%` }}
                     />
                   </div>
@@ -130,10 +140,14 @@ export default function HomePage() {
 
       {/* Today's Schedule Mini */}
       <div className="pb-4">
-        <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wide mb-3">Today&apos;s Schedule</h3>
+        <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider mb-3">{t("home.todaysSchedule")}</h3>
         <div className="space-y-2">
-          {todayAppointments.map((appt) => (
-            <div key={appt.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 shadow-sm border border-rose-light/20">
+          {todayAppointments.map((appt, index) => (
+            <div
+              key={appt.id}
+              className="flex items-center gap-3 glass-card rounded-2xl px-4 py-3 tap-scale animate-fade-in-up"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
               <span className="text-xs font-mono font-medium text-plum-light w-11">{appt.time}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-plum truncate">{appt.clientName}</p>
@@ -160,21 +174,21 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl p-3 shadow-sm border border-rose-light/20">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} mb-2`}>
+    <div className="glass-card-solid rounded-2xl p-3.5 premium-shadow tap-scale">
+      <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${color} mb-2`}>
         {icon}
       </div>
-      <p className="text-xs text-plum-light">{label}</p>
-      <p className="text-base font-bold text-plum">{value}</p>
+      <p className="text-xs text-plum-light font-medium">{label}</p>
+      <p className="text-base font-bold text-plum tracking-tight">{value}</p>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const styles = {
-    confirmed: "bg-green-50 text-green-700",
-    pending: "bg-amber-50 text-amber-700",
-    completed: "bg-plum/5 text-plum-light",
+    confirmed: "bg-green-50/80 text-green-700 border border-green-200/50",
+    pending: "bg-amber-50/80 text-amber-700 border border-amber-200/50",
+    completed: "bg-plum/5 text-plum-light border border-plum/10",
   };
   return (
     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${styles[status as keyof typeof styles]}`}>

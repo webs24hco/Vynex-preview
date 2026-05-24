@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Users, Scissors, Crown, Sun } from "lucide-react";
-
-const tabs = [
-  { href: "/", label: "Today", icon: Sun },
-  { href: "/appointments", label: "Appointments", icon: CalendarDays },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/services", label: "Services", icon: Scissors },
-  { href: "/plan", label: "Plan", icon: Crown },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t } = useLanguage();
+
+  const tabs = [
+    { href: "/", label: t("nav.today"), icon: Sun },
+    { href: "/appointments", label: t("nav.appointments"), icon: CalendarDays },
+    { href: "/clients", label: t("nav.clients"), icon: Users },
+    { href: "/services", label: t("nav.services"), icon: Scissors },
+    { href: "/plan", label: t("nav.plan"), icon: Crown },
+  ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-rose-light/50 z-50">
-      <div className="flex items-center justify-around py-2">
+    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[calc(var(--spacing)*112)] floating-nav rounded-2xl z-50">
+      <div className="flex items-center justify-around py-2.5 px-1">
         {tabs.map((tab) => {
           const isActive =
             tab.href === "/"
@@ -28,14 +30,14 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 tap-scale ${
                 isActive
-                  ? "text-rose"
+                  ? "text-rose bg-rose/10"
                   : "text-plum-light hover:text-rose"
               }`}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className={`text-[10px] ${isActive ? "font-semibold" : "font-medium"}`}>
+              <Icon size={20} strokeWidth={isActive ? 2.2 : 1.6} />
+              <span className={`text-[10px] leading-tight ${isActive ? "font-semibold" : "font-medium"}`}>
                 {tab.label}
               </span>
             </Link>
