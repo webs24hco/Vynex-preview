@@ -1,29 +1,36 @@
 "use client";
 
-import { ArrowLeft, Palette, Crown, Lock, Check, FlaskConical } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Palette, Crown, Lock, Check, FlaskConical, MessageCircle, Users, BarChart3, Globe, Upload, ChevronRight, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme, ThemeName, themes } from "@/context/ThemeContext";
 import { usePlan, PlanType } from "@/context/PlanContext";
 
-const themeOptions: { key: ThemeName; labelKey: string; preview: string[]; pro: boolean }[] = [
+const themeOptions: { key: ThemeName; labelKey: string; preview: string[]; tier: "free" | "pro" }[] = [
+  {
+    key: "default",
+    labelKey: "settings.themeDefault",
+    preview: ["#DCAE96", "#f0d4c4", "#F3E5AB", "#4A3B3C"],
+    tier: "free",
+  },
   {
     key: "roseGold",
     labelKey: "settings.themeRoseGold",
     preview: ["#DCAE96", "#f0d4c4", "#F3E5AB", "#4A3B3C"],
-    pro: false,
+    tier: "pro",
   },
   {
     key: "midnightGlamour",
     labelKey: "settings.themeMidnight",
     preview: ["#C9A0DC", "#dfc4ec", "#F0C27B", "#1A1125"],
-    pro: true,
+    tier: "pro",
   },
   {
     key: "softSage",
     labelKey: "settings.themeSage",
     preview: ["#7BA68C", "#a8cdb6", "#E8D5B7", "#2D3B33"],
-    pro: true,
+    tier: "pro",
   },
 ];
 
@@ -31,8 +38,15 @@ const planOptions: PlanType[] = ["Free", "Pro", "Studio"];
 
 export default function SettingsPage() {
   const { t } = useLanguage();
-  const { theme, setTheme } = useTheme();
-  const { plan, setPlan, isPro } = usePlan();
+  const { theme, setTheme, customBranding, setCustomBranding } = useTheme();
+  const { plan, setPlan, isPro, isStudio } = usePlan();
+  const [customColor, setCustomColor] = useState(customBranding.accentColor);
+
+  const menuItems = [
+    { href: "/settings/templates", icon: MessageCircle, label: t("settings.templates"), badge: isPro ? null : "PRO" },
+    { href: "/team", icon: Users, label: t("settings.team"), badge: isStudio ? null : "STUDIO" },
+    { href: "/reports", icon: BarChart3, label: t("settings.reports"), badge: isStudio ? null : "STUDIO" },
+  ];
 
   return (
     <div className="min-h-screen px-5 pt-6 pb-28 space-y-6">
@@ -61,7 +75,7 @@ export default function SettingsPage() {
           </h3>
         </div>
         <p className="text-[11px] text-plum-light mb-3">
-          Switch plans to test premium features like Themes.
+          Switch plans to test premium features like Themes, Templates, Team & Reports.
         </p>
         <div className="flex gap-2">
           {planOptions.map((p) => (
@@ -85,6 +99,35 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Menu Links */}
+      <div className="space-y-2">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center justify-between glass-card-solid rounded-2xl p-4 premium-shadow tap-scale"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose/10 flex items-center justify-center">
+                  <Icon size={16} className="text-rose" />
+                </div>
+                <span className="text-sm font-medium text-plum">{item.label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {item.badge && (
+                  <span className="text-[9px] font-bold bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700 border border-amber-200/50 px-2 py-0.5 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+                <ChevronRight size={14} className="text-plum-light" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
       {/* Theme Section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -95,7 +138,7 @@ export default function SettingsPage() {
         <div className="space-y-3">
           {themeOptions.map((opt) => {
             const isActive = theme === opt.key;
-            const isLocked = opt.pro && !isPro;
+            const isLocked = opt.tier === "pro" && !isPro;
             return (
               <button
                 key={opt.key}
@@ -125,7 +168,7 @@ export default function SettingsPage() {
                         <span className="text-sm font-medium text-plum">
                           {t(opt.labelKey)}
                         </span>
-                        {opt.pro && (
+                        {opt.tier === "pro" && (
                           <span className={`flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
                             isPro
                               ? "bg-green-50 text-green-700 border-green-200/50"
@@ -163,6 +206,60 @@ export default function SettingsPage() {
           })}
         </div>
 
+        {/* Custom Branding (Studio only) */}
+        {isStudio && (
+          <div className="glass-card-solid rounded-2xl p-4 premium-shadow border border-purple-200/30 bg-gradient-to-br from-purple-50/20 to-transparent">
+            <div className="flex items-center gap-2 mb-3">
+              <Crown size={14} className="text-purple-600" />
+              <h3 className="text-sm font-semibold text-plum">{t("settings.customBranding")}</h3>
+            </div>
+            <p className="text-xs text-plum-light mb-4">{t("settings.customBrandingDesc")}</p>
+            
+            {/* Logo Upload */}
+            <div className="mb-4">
+              <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 block">
+                {t("settings.uploadLogo")}
+              </label>
+              <button className="w-full h-20 rounded-xl border-2 border-dashed border-rose/30 flex items-center justify-center gap-2 text-plum-light hover:text-rose hover:border-rose/50 transition-all">
+                <Upload size={16} />
+                <span className="text-xs font-medium">Choose file or drag & drop</span>
+              </button>
+            </div>
+
+            {/* Color Picker */}
+            <div className="mb-4">
+              <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 block">
+                {t("settings.accentColor")}
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={customColor}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  className="w-10 h-10 rounded-lg border-0 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={customColor}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg glass-card border border-white/50 text-sm font-mono text-plum focus:outline-none focus:ring-2 focus:ring-rose/30"
+                />
+                <div className="w-8 h-8 rounded-full shadow-sm border border-white/50" style={{ backgroundColor: customColor }} />
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setCustomBranding({ accentColor: customColor, logoUrl: null });
+                setTheme("custom");
+              }}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-700 text-white font-semibold text-xs shadow-md active:scale-[0.98] transition-all"
+            >
+              {t("settings.applyBranding")}
+            </button>
+          </div>
+        )}
+
         {/* Pro upsell - only show when on Free plan */}
         {!isPro && (
           <div className="glass-card-solid rounded-2xl p-4 premium-shadow border border-amber-200/30 bg-gradient-to-br from-amber-50/50 to-transparent">
@@ -185,6 +282,22 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Account */}
+      <div className="space-y-2">
+        <Link
+          href="/login"
+          className="flex items-center justify-between glass-card-solid rounded-2xl p-4 tap-scale"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+              <LogOut size={16} className="text-red-500" />
+            </div>
+            <span className="text-sm font-medium text-red-500">{t("settings.logout")}</span>
+          </div>
+          <ChevronRight size={14} className="text-plum-light" />
+        </Link>
       </div>
     </div>
   );

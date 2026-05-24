@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
-export type ThemeName = "roseGold" | "midnightGlamour" | "softSage";
+export type ThemeName = "default" | "roseGold" | "midnightGlamour" | "softSage" | "custom";
 
 interface ThemeColors {
   primary: string;
@@ -19,7 +19,21 @@ interface ThemeColors {
   borderColor: string;
 }
 
-export const themes: Record<ThemeName, ThemeColors> = {
+export const themes: Record<Exclude<ThemeName, "custom">, ThemeColors> = {
+  default: {
+    primary: "#DCAE96",
+    primaryLight: "#f0d4c4",
+    primaryDark: "#c4947c",
+    accent: "#F3E5AB",
+    accentDark: "#d4c48a",
+    text: "#4A3B3C",
+    textLight: "#6b5a5b",
+    bg: "#FDFBF7",
+    bgCard: "#FFFFFF",
+    bgGradient: "linear-gradient(180deg, #f5efe8 0%, #f0ebe3 50%, #ece5dc 100%)",
+    navBg: "rgba(255, 255, 255, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.6)",
+  },
   roseGold: {
     primary: "#DCAE96",
     primaryLight: "#f0d4c4",
@@ -64,19 +78,41 @@ export const themes: Record<ThemeName, ThemeColors> = {
   },
 };
 
+interface CustomBranding {
+  accentColor: string;
+  logoUrl: string | null;
+}
+
 interface ThemeContextType {
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   colors: ThemeColors;
+  customBranding: CustomBranding;
+  setCustomBranding: (branding: CustomBranding) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeName>("roseGold");
+  const [theme, setTheme] = useState<ThemeName>("default");
+  const [customBranding, setCustomBranding] = useState<CustomBranding>({
+    accentColor: "#DCAE96",
+    logoUrl: null,
+  });
 
-  const applyTheme = useCallback((themeName: ThemeName) => {
-    const colors = themes[themeName];
+  const getColors = useCallback((): ThemeColors => {
+    if (theme === "custom") {
+      return {
+        ...themes.default,
+        primary: customBranding.accentColor,
+        primaryLight: customBranding.accentColor + "40",
+        primaryDark: customBranding.accentColor,
+      };
+    }
+    return themes[theme];
+  }, [theme, customBranding]);
+
+  const applyTheme = useCallback((colors: ThemeColors) => {
     const root = document.documentElement;
     root.style.setProperty("--color-ivory", colors.bg);
     root.style.setProperty("--color-rose", colors.primary);
@@ -95,11 +131,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme, applyTheme]);
+    applyTheme(getColors());
+  }, [theme, customBranding, applyTheme, getColors]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, colors: themes[theme] }}>
+    <ThemeContext.Provider value={{ theme, setTheme, colors: getColors(), customBranding, setCustomBranding }}>
       {children}
     </ThemeContext.Provider>
   );

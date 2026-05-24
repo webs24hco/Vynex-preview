@@ -7,6 +7,7 @@ export interface Appointment {
   price: number;
   status: "confirmed" | "pending" | "completed";
   avatar?: string;
+  assignedTo?: string;
 }
 
 export interface Client {
@@ -30,6 +31,23 @@ export interface Service {
   category: string;
 }
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  avatar?: string;
+  active: boolean;
+  color: string;
+}
+
+export const teamMembers: TeamMember[] = [
+  { id: "1", name: "Valentina", role: "stylist", active: true, color: "#DCAE96" },
+  { id: "2", name: "Carlos", role: "barber", active: true, color: "#7BA68C" },
+  { id: "3", name: "Mía", role: "nailArtist", active: true, color: "#C9A0DC" },
+  { id: "4", name: "Sofía", role: "lashTech", active: true, color: "#F0C27B" },
+  { id: "5", name: "Isabella", role: "esthetician", active: false, color: "#E8D5B7" },
+];
+
 export const todayAppointments: Appointment[] = [
   {
     id: "1",
@@ -39,6 +57,7 @@ export const todayAppointments: Appointment[] = [
     duration: "2h 30min",
     price: 180,
     status: "completed",
+    assignedTo: "1",
   },
   {
     id: "2",
@@ -48,6 +67,7 @@ export const todayAppointments: Appointment[] = [
     duration: "1h",
     price: 45,
     status: "confirmed",
+    assignedTo: "3",
   },
   {
     id: "3",
@@ -57,6 +77,7 @@ export const todayAppointments: Appointment[] = [
     duration: "1h 15min",
     price: 95,
     status: "pending",
+    assignedTo: "5",
   },
   {
     id: "4",
@@ -66,6 +87,7 @@ export const todayAppointments: Appointment[] = [
     duration: "2h",
     price: 150,
     status: "confirmed",
+    assignedTo: "1",
   },
   {
     id: "5",
@@ -75,6 +97,7 @@ export const todayAppointments: Appointment[] = [
     duration: "45min",
     price: 35,
     status: "pending",
+    assignedTo: "4",
   },
 ];
 
@@ -88,6 +111,7 @@ export const allAppointments: Appointment[] = [
     duration: "1h 45min",
     price: 120,
     status: "confirmed",
+    assignedTo: "1",
   },
   {
     id: "7",
@@ -97,6 +121,7 @@ export const allAppointments: Appointment[] = [
     duration: "2h 30min",
     price: 200,
     status: "pending",
+    assignedTo: "2",
   },
 ];
 
@@ -182,3 +207,26 @@ export const weekOverview = [
   { day: "Sat", appointments: 3, revenue: 250 },
   { day: "Sun", appointments: 0, revenue: 0 },
 ];
+
+export const monthlyRevenue = [
+  { month: "Jan", revenue: 8200 },
+  { month: "Feb", revenue: 9100 },
+  { month: "Mar", revenue: 10500 },
+  { month: "Apr", revenue: 9800 },
+  { month: "May", revenue: 11200 },
+];
+
+export const topServicesData = [
+  { name: "Balayage", count: 45, revenue: 6750 },
+  { name: "Manicure Gel", count: 62, revenue: 2790 },
+  { name: "Highlights", count: 38, revenue: 4940 },
+  { name: "Facial Treatment", count: 28, revenue: 2660 },
+  { name: "Lash Extensions", count: 35, revenue: 2800 },
+];
+
+export const clientRetentionData = {
+  totalClients: 127,
+  newThisMonth: 14,
+  returnRate: 78,
+  avgVisitsPerClient: 4.2,
+};

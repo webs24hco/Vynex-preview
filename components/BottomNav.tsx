@@ -9,6 +9,11 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
 
+  // Hide on auth pages
+  if (pathname === "/login" || pathname === "/register") {
+    return null;
+  }
+
   const tabs = [
     { href: "/", label: t("nav.today"), icon: Sun },
     { href: "/appointments", label: t("nav.appointments"), icon: CalendarDays },

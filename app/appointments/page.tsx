@@ -1,20 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { allAppointments, Appointment } from "@/lib/mockData";
-import { Plus, MessageCircle, Filter, Phone } from "lucide-react";
+import { allAppointments, Appointment, teamMembers } from "@/lib/mockData";
+import { Plus, MessageCircle, Filter, Phone, Users } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePlan } from "@/context/PlanContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function AppointmentsPage() {
   const { t } = useLanguage();
+  const { isStudio } = usePlan();
   const [filter, setFilter] = useState<string>("all");
+  const [teamFilter, setTeamFilter] = useState<string>("all");
 
-  const filtered =
+  let filtered =
     filter === "all"
       ? allAppointments
       : allAppointments.filter((a) => a.status === filter);
+
+  if (teamFilter !== "all" && isStudio) {
+    filtered = filtered.filter((a) => a.assignedTo === teamFilter);
+  }
 
   const filterTabs = [
     { key: "all", label: t("appt.all") },
@@ -38,6 +45,47 @@ export default function AppointmentsPage() {
           <LanguageSwitcher />
         </div>
       </div>
+
+      {/* Team Filter (Studio only) */}
+      {isStudio && (
+        <div className="glass-card-solid rounded-xl p-3 premium-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <Users size={12} className="text-rose" />
+            <span className="text-[10px] font-semibold text-plum-light uppercase tracking-wider">{t("appt.teamFilter")}</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setTeamFilter("all")}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all tap-scale ${
+                teamFilter === "all"
+                  ? "bg-rose text-white shadow-sm"
+                  : "bg-white/70 text-plum-light border border-white/50"
+              }`}
+            >
+              {t("appt.allTeam")}
+            </button>
+            {teamMembers.filter((m) => m.active).map((member) => (
+              <button
+                key={member.id}
+                onClick={() => setTeamFilter(member.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all tap-scale ${
+                  teamFilter === member.id
+                    ? "bg-rose text-white shadow-sm"
+                    : "bg-white/70 text-plum-light border border-white/50"
+                }`}
+              >
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold"
+                  style={{ backgroundColor: member.color }}
+                >
+                  {member.name[0]}
+                </div>
+                {member.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -77,6 +125,8 @@ export default function AppointmentsPage() {
 }
 
 function AppointmentCard({ appointment }: { appointment: Appointment }) {
+  const assignedMember = teamMembers.find((m) => m.id === appointment.assignedTo);
+
   const statusStyles = {
     confirmed: "border-l-green-400",
     pending: "border-l-amber-400",
@@ -90,43 +140,56 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   };
 
   return (
-    <div
-      className={`glass-card-solid rounded-2xl p-4 premium-shadow border-l-4 tap-scale ${statusStyles[appointment.status]}`}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose/25 to-rose-light/35 flex items-center justify-center text-rose-dark font-bold text-xs shadow-sm">
-            {appointment.clientName.split(" ").map((n) => n[0]).join("")}
-          </div>
-          <div>
-            <p className="font-semibold text-sm text-plum">{appointment.clientName}</p>
-            <p className="text-xs text-plum-light">{appointment.service}</p>
-          </div>
-        </div>
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge[appointment.status]}`}>
-          {appointment.status}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-rose-light/15">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono font-semibold text-plum">{appointment.time}</span>
-          <span className="text-xs text-plum-light">{appointment.duration}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-sm text-rose">€{appointment.price}</span>
-          {appointment.status !== "completed" && (
-            <div className="flex gap-1.5">
-              <button className="w-7 h-7 rounded-full bg-green-50/80 backdrop-blur-sm flex items-center justify-center text-green-600 hover:bg-green-100 transition-all duration-200 active:scale-90">
-                <MessageCircle size={13} />
-              </button>
-              <button className="w-7 h-7 rounded-full bg-blue-50/80 backdrop-blur-sm flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all duration-200 active:scale-90">
-                <Phone size={13} />
-              </button>
+    <Link href={`/appointments/${appointment.id}`}>
+      <div
+        className={`glass-card-solid rounded-2xl p-4 premium-shadow border-l-4 tap-scale ${statusStyles[appointment.status]}`}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose/25 to-rose-light/35 flex items-center justify-center text-rose-dark font-bold text-xs shadow-sm">
+              {appointment.clientName.split(" ").map((n) => n[0]).join("")}
             </div>
-          )}
+            <div>
+              <p className="font-semibold text-sm text-plum">{appointment.clientName}</p>
+              <p className="text-xs text-plum-light">{appointment.service}</p>
+            </div>
+          </div>
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge[appointment.status]}`}>
+            {appointment.status}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-rose-light/15">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono font-semibold text-plum">{appointment.time}</span>
+            <span className="text-xs text-plum-light">{appointment.duration}</span>
+            {assignedMember && (
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[7px] font-bold"
+                  style={{ backgroundColor: assignedMember.color }}
+                >
+                  {assignedMember.name[0]}
+                </div>
+                <span className="text-[10px] text-plum-light">{assignedMember.name}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm text-rose">€{appointment.price}</span>
+            {appointment.status !== "completed" && (
+              <div className="flex gap-1.5">
+                <button className="w-7 h-7 rounded-full bg-green-50/80 backdrop-blur-sm flex items-center justify-center text-green-600 hover:bg-green-100 transition-all duration-200 active:scale-90">
+                  <MessageCircle size={13} />
+                </button>
+                <button className="w-7 h-7 rounded-full bg-blue-50/80 backdrop-blur-sm flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-all duration-200 active:scale-90">
+                  <Phone size={13} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
