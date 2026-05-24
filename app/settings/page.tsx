@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Palette, Crown, Lock, Check, FlaskConical, MessageCircle, Users, BarChart3, Globe, Upload, ChevronRight, LogOut } from "lucide-react";
+import { ArrowLeft, Palette, Crown, Lock, Check, FlaskConical, MessageCircle, Users, BarChart3, Globe, Upload, ChevronRight, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTheme, ThemeName, themes } from "@/context/ThemeContext";
 import { usePlan, PlanType } from "@/context/PlanContext";
+import { createClient } from "@/utils/supabase/client";
 
 const themeOptions: { key: ThemeName; labelKey: string; preview: string[]; tier: "free" | "pro" }[] = [
   {
@@ -38,9 +40,19 @@ const planOptions: PlanType[] = ["Free", "Pro", "Studio"];
 
 export default function SettingsPage() {
   const { t } = useLanguage();
+  const router = useRouter();
   const { theme, setTheme, customBranding, setCustomBranding } = useTheme();
   const { plan, setPlan, isPro, isStudio } = usePlan();
   const [customColor, setCustomColor] = useState(customBranding.accentColor);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   const menuItems = [
     { href: "/settings/templates", icon: MessageCircle, label: t("settings.templates"), badge: isPro ? null : "PRO" },
@@ -294,20 +306,25 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Account */}
+      {/* Account / Logout */}
       <div className="space-y-2">
-        <Link
-          href="/login"
-          className="flex items-center justify-between glass-card-solid rounded-2xl p-4 tap-scale cursor-pointer touch-manipulation"
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="w-full flex items-center justify-between glass-card-solid rounded-2xl p-4 tap-scale cursor-pointer touch-manipulation"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
-              <LogOut size={16} className="text-red-500" />
+              {loggingOut ? (
+                <Loader2 size={16} className="text-red-500 animate-spin" />
+              ) : (
+                <LogOut size={16} className="text-red-500" />
+              )}
             </div>
             <span className="text-sm font-medium text-red-500">{t("settings.logout")}</span>
           </div>
           <ChevronRight size={14} className="text-plum-light" />
-        </Link>
+        </button>
       </div>
     </div>
   );

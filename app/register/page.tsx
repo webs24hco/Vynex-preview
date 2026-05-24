@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Check, Eye, EyeOff, Sparkles, Crown } from "lucide-react";
+import { ArrowLeft, Check, Eye, EyeOff, Sparkles, Crown, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
+import { createClient } from "@/utils/supabase/client";
 
 export default function RegisterPage() {
   const { t } = useLanguage();
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -36,6 +41,40 @@ export default function RegisterPage() {
     { code: "MXN", symbol: "$", name: "Mexican Peso" },
     { code: "COP", symbol: "$", name: "Colombian Peso" },
   ];
+
+  const handleSignUp = async () => {
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.fullName,
+          business_name: formData.businessName,
+          plan: formData.selectedPlan,
+          currency: formData.currency,
+        },
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Redirect to home on success
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <div className="min-h-screen px-6 py-8">
@@ -75,6 +114,13 @@ export default function RegisterPage() {
           />
         ))}
       </div>
+
+      {/* Error display */}
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200/50 text-xs text-red-600 text-center">
+          {error}
+        </div>
+      )}
 
       {/* Step 1: Account Details */}
       {step === 1 && (
@@ -249,12 +295,17 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <Link
-            href="/"
-            className="w-full flex items-center justify-center py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98] mt-6"
+          <button
+            onClick={handleSignUp}
+            disabled={loading}
+            className="w-full flex items-center justify-center py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98] mt-6 disabled:opacity-70 disabled:active:scale-100"
           >
-            {t("auth.getStarted")} ✨
-          </Link>
+            {loading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>{t("auth.getStarted")} ✨</>
+            )}
+          </button>
         </div>
       )}
 
