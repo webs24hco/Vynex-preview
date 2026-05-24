@@ -4,6 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { PlanProvider } from "@/context/PlanContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,14 +23,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} antialiased`}>
-      <body className="min-h-screen">
+      <body className="min-h-screen overflow-x-hidden">
         <ThemeProvider>
-          <LanguageProvider>
-            <div className="max-w-md mx-auto min-h-screen bg-ivory/60 backdrop-blur-sm shadow-2xl relative pb-28">
-              {children}
+          <PlanProvider>
+            <LanguageProvider>
+              <main className="max-w-md mx-auto min-h-screen bg-ivory/60 backdrop-blur-sm shadow-2xl relative pb-24">
+                {children}
+              </main>
               <BottomNav />
-            </div>
-          </LanguageProvider>
+            </LanguageProvider>
+          </PlanProvider>
         </ThemeProvider>
       </body>
     </html>

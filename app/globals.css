@@ -14,12 +14,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  height: -webkit-fill-available;
+}
+
 body {
   background: linear-gradient(180deg, #f5efe8 0%, #f0ebe3 50%, #ece5dc 100%);
   color: #4A3B3C;
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
 }
 
 /* Premium glass card */
@@ -58,7 +65,7 @@ body {
   box-shadow: 0 2px 8px rgba(74, 59, 60, 0.04);
 }
 
-/* Floating bottom nav */
+/* Floating bottom nav - ensure it stays visible */
 .floating-nav {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(24px) saturate(180%);
@@ -105,4 +112,11 @@ body {
 
 .animate-scale-in {
   animation: scaleIn 0.2s ease-out forwards;
+}
+
+/* Bottom nav safe area for iOS notched devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .floating-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }

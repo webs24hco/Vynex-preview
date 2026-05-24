@@ -18,7 +18,10 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50">
+    <nav
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50"
+      style={{ position: "fixed" }}
+    >
       <div className="mx-3 mb-3 floating-nav rounded-2xl">
         <div className="flex items-center justify-around py-2.5 px-1">
           {tabs.map((tab) => {
