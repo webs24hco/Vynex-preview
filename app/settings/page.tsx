@@ -54,7 +54,7 @@ export default function SettingsPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/"
-          className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-plum transition-all duration-200 active:scale-90"
+          className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-plum transition-all duration-200 active:scale-90 cursor-pointer touch-manipulation"
         >
           <ArrowLeft size={18} />
         </Link>
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Test Mode Toggle */}
-      <div className="glass-card-solid rounded-2xl p-4 premium-shadow border border-purple-200/40 bg-gradient-to-br from-purple-50/40 to-transparent">
+      <div className="relative z-10 glass-card-solid rounded-2xl p-4 premium-shadow border border-purple-200/40 bg-gradient-to-br from-purple-50/40 to-transparent">
         <div className="flex items-center gap-2 mb-3">
           <FlaskConical size={16} className="text-purple-600" />
           <h3 className="text-xs font-semibold text-plum uppercase tracking-wider">
@@ -77,12 +77,17 @@ export default function SettingsPage() {
         <p className="text-[11px] text-plum-light mb-3">
           Switch plans to test premium features like Themes, Templates, Team & Reports.
         </p>
-        <div className="flex gap-2">
+        <div className="relative z-20 flex gap-2">
           {planOptions.map((p) => (
             <button
+              type="button"
               key={p}
               onClick={() => setPlan(p)}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ${
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                setPlan(p);
+              }}
+              className={`relative z-20 flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 cursor-pointer touch-manipulation select-none ${
                 plan === p
                   ? "bg-purple-600 text-white shadow-md"
                   : "bg-white/70 text-plum border border-white/50 hover:bg-purple-50"
@@ -107,7 +112,7 @@ export default function SettingsPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center justify-between glass-card-solid rounded-2xl p-4 premium-shadow tap-scale"
+              className="flex items-center justify-between glass-card-solid rounded-2xl p-4 premium-shadow tap-scale cursor-pointer touch-manipulation"
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-rose/10 flex items-center justify-center">
@@ -141,13 +146,14 @@ export default function SettingsPage() {
             const isLocked = opt.tier === "pro" && !isPro;
             return (
               <button
+                type="button"
                 key={opt.key}
                 onClick={() => {
                   if (!isLocked) {
                     setTheme(opt.key);
                   }
                 }}
-                className={`w-full glass-card-solid rounded-2xl p-4 premium-shadow text-left tap-scale transition-all duration-200 ${
+                className={`w-full glass-card-solid rounded-2xl p-4 premium-shadow text-left tap-scale transition-all duration-200 cursor-pointer touch-manipulation ${
                   isActive ? "ring-2 ring-rose/40 border-rose/30" : ""
                 } ${isLocked ? "opacity-60" : ""}`}
               >
@@ -220,7 +226,10 @@ export default function SettingsPage() {
               <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 block">
                 {t("settings.uploadLogo")}
               </label>
-              <button className="w-full h-20 rounded-xl border-2 border-dashed border-rose/30 flex items-center justify-center gap-2 text-plum-light hover:text-rose hover:border-rose/50 transition-all">
+              <button
+                type="button"
+                className="w-full h-20 rounded-xl border-2 border-dashed border-rose/30 flex items-center justify-center gap-2 text-plum-light hover:text-rose hover:border-rose/50 transition-all cursor-pointer touch-manipulation"
+              >
                 <Upload size={16} />
                 <span className="text-xs font-medium">Choose file or drag & drop</span>
               </button>
@@ -236,7 +245,7 @@ export default function SettingsPage() {
                   type="color"
                   value={customColor}
                   onChange={(e) => setCustomColor(e.target.value)}
-                  className="w-10 h-10 rounded-lg border-0 cursor-pointer"
+                  className="w-10 h-10 rounded-lg border-0 cursor-pointer touch-manipulation"
                 />
                 <input
                   type="text"
@@ -249,11 +258,12 @@ export default function SettingsPage() {
             </div>
 
             <button
+              type="button"
               onClick={() => {
                 setCustomBranding({ accentColor: customColor, logoUrl: null });
                 setTheme("custom");
               }}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-700 text-white font-semibold text-xs shadow-md active:scale-[0.98] transition-all"
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-700 text-white font-semibold text-xs shadow-md active:scale-[0.98] transition-all cursor-pointer touch-manipulation"
             >
               {t("settings.applyBranding")}
             </button>
@@ -274,7 +284,7 @@ export default function SettingsPage() {
                 </p>
                 <Link
                   href="/plan"
-                  className="inline-block mt-2 text-xs font-medium text-rose hover:underline"
+                  className="inline-block mt-2 text-xs font-medium text-rose hover:underline cursor-pointer touch-manipulation"
                 >
                   {t("settings.viewPlans")} →
                 </Link>
@@ -288,7 +298,7 @@ export default function SettingsPage() {
       <div className="space-y-2">
         <Link
           href="/login"
-          className="flex items-center justify-between glass-card-solid rounded-2xl p-4 tap-scale"
+          className="flex items-center justify-between glass-card-solid rounded-2xl p-4 tap-scale cursor-pointer touch-manipulation"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">

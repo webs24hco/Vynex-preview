@@ -17,35 +17,51 @@ export default function LanguageSwitcher() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
+    // Use both mousedown and touchstart for cross-platform support
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative z-[100]" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="w-9 h-9 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-rose hover:border-rose/30 transition-all duration-200 active:scale-95"
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          setOpen(!open);
+        }}
+        className="relative z-[101] w-9 h-9 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-rose hover:border-rose/30 transition-all duration-200 active:scale-95 cursor-pointer touch-manipulation"
         aria-label="Change language"
       >
         <Globe size={16} strokeWidth={1.8} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-[60] w-40 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-11 z-[102] w-40 bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {languages.map((lang) => (
             <button
+              type="button"
               key={lang.code}
               onClick={() => {
                 setLocale(lang.code);
                 setOpen(false);
               }}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                setLocale(lang.code);
+                setOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors cursor-pointer touch-manipulation ${
                 locale === lang.code
                   ? "bg-rose/10 text-rose font-medium"
                   : "text-plum hover:bg-rose/5"

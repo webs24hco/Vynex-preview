@@ -24,10 +24,10 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 pointer-events-none"
       style={{ position: "fixed" }}
     >
-      <div className="mx-3 mb-3 floating-nav rounded-2xl">
+      <div className="mx-3 mb-3 floating-nav rounded-2xl pointer-events-auto">
         <div className="flex items-center justify-around py-2.5 px-1">
           {tabs.map((tab) => {
             const isActive =
@@ -39,7 +39,7 @@ export default function BottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 tap-scale ${
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 tap-scale cursor-pointer touch-manipulation ${
                   isActive
                     ? "text-rose bg-rose/10"
                     : "text-plum-light hover:text-rose"
