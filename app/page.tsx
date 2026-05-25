@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { todayAppointments as mockAppointments, weekOverview as mockWeekOverview } from "@/lib/mockData";
 import {
   DollarSign,
   Clock,
@@ -11,6 +10,7 @@ import {
   TrendingUp,
   ChevronRight,
   Settings,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -32,16 +32,19 @@ interface ReportsData {
 export default function HomePage() {
   const { t } = useLanguage();
   const [reportsData, setReportsData] = useState<ReportsData | null>(null);
-  const [businessName, setBusinessName] = useState("Valentina");
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [businessName, setBusinessName] = useState("Cargando...");
   const [currency, setCurrency] = useState("€");
+  const [loading, setLoading] = useState(true);
 
-  // Fetch real data from API on mount
   useEffect(() => {
     async function fetchData() {
       try {
-        const [reportsRes, businessRes] = await Promise.all([
+        const today = new Date().toISOString().split("T")[0];
+        const [reportsRes, businessRes, apptsRes] = await Promise.all([
           fetch("/api/reports"),
           fetch("/api/business"),
+          fetch(`/api/appointments?date=${today}`),
         ]);
 
         if (reportsRes.ok) {
@@ -62,48 +65,52 @@ export default function HomePage() {
             setCurrency(currencySymbols[biz.currency] || biz.currency);
           }
         }
-      } catch {
-        // Silently fail - use fallback mock data
+
+        if (apptsRes.ok) {
+          const data = await apptsRes.json();
+          setAppointments(data.appointments || []);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
       }
     }
     fetchData();
   }, []);
 
-  // Use real data if available, fallback to mock
-  const totalRevenue = reportsData
-    ? reportsData.today.revenue
-    : mockAppointments.reduce((sum, a) => sum + a.price, 0);
-  const completedCount = reportsData
-    ? reportsData.today.completedCount
-    : mockAppointments.filter((a) => a.status === "completed").length;
-  const appointmentsTotal = reportsData
-    ? reportsData.today.appointmentsTotal
-    : mockAppointments.length;
-  const pendingCount = reportsData
-    ? reportsData.today.pendingCount
-    : mockAppointments.filter((a) => a.status === "pending").length;
-  const weekOverview = reportsData
-    ? reportsData.week.overview
-    : mockWeekOverview;
-  const weekTotal = reportsData
-    ? reportsData.week.revenue
-    : mockWeekOverview.reduce((s, d) => s + d.revenue, 0);
+  const totalRevenue = reportsData?.today.revenue || 0;
+  const completedCount = reportsData?.today.completedCount || 0;
+  const appointmentsTotal = reportsData?.today.appointmentsTotal || 0;
+  const pendingCount = reportsData?.today.pendingCount || 0;
+  const weekOverview = reportsData?.week.overview || [];
+  const weekTotal = reportsData?.week.revenue || 0;
 
-  const nextAppointment = mockAppointments.find((a) => a.status === "confirmed");
+  // Find next appointment: first one today that is not completed/cancelled
+  const nextAppointment = appointments.find(
+    (a) => a.status === "PENDING" || a.status === "CONFIRMED"
+  );
 
-  // Format today's date
-  const todayFormatted = new Date().toLocaleDateString("en-US", {
+  const todayFormatted = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-rose" size={32} />
+      </div>
+    );
+  }
+
   return (
-    <div className="px-5 pt-6 space-y-5">
+    <div className="px-5 pt-6 space-y-5 pb-28">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-plum-light font-medium">{todayFormatted}</p>
+          <p className="text-sm text-plum-light font-medium capitalize">{todayFormatted}</p>
           <h1 className="text-2xl font-bold text-plum mt-1 tracking-tight">
             {t("home.greeting")} <span className="text-rose">{businessName}</span> ✨
           </h1>
@@ -153,24 +160,28 @@ export default function HomePage() {
 
       {/* Next Appointment */}
       {nextAppointment && (
-        <div className="glass-card-solid rounded-2xl p-4 premium-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider">{t("home.nextUp")}</h3>
-            <span className="text-xs bg-rose/10 text-rose-dark px-2.5 py-0.5 rounded-full font-medium">
-              {nextAppointment.time}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose/30 to-rose-light/40 flex items-center justify-center text-rose-dark font-bold text-sm shadow-sm">
-              {nextAppointment.clientName.split(" ").map(n => n[0]).join("")}
+        <Link href={`/appointments/${nextAppointment.id}`} className="block">
+          <div className="glass-card-solid rounded-2xl p-4 premium-shadow border-l-4 border-rose">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider">{t("home.nextUp")}</h3>
+              <span className="text-xs bg-rose/10 text-rose-dark px-2.5 py-0.5 rounded-full font-medium">
+                {nextAppointment.startTime}
+              </span>
             </div>
-            <div className="flex-1">
-              <p className="font-semibold text-plum text-sm">{nextAppointment.clientName}</p>
-              <p className="text-xs text-plum-light">{nextAppointment.service} · {nextAppointment.duration}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-rose/30 to-rose-light/40 flex items-center justify-center text-rose-dark font-bold text-sm shadow-sm">
+                {nextAppointment.client.name.split(" ").map((n: string) => n[0]).join("")}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-plum text-sm">{nextAppointment.client.name}</p>
+                <p className="text-xs text-plum-light">
+                  {nextAppointment.services.map((s: any) => s.service.name).join(", ")}
+                </p>
+              </div>
+              <p className="font-bold text-rose text-sm">{currency}{nextAppointment.totalAmount}</p>
             </div>
-            <p className="font-bold text-rose text-sm">{currency}{nextAppointment.price}</p>
           </div>
-        </div>
+        </Link>
       )}
 
       {/* Quick Actions */}
@@ -196,7 +207,7 @@ export default function HomePage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider">{t("home.weekOverview")}</h3>
-          <Link href="/appointments" className="text-xs text-rose font-medium flex items-center gap-0.5">
+          <Link href="/reports" className="text-xs text-rose font-medium flex items-center gap-0.5">
             {t("home.viewAll")} <ChevronRight size={12} />
           </Link>
         </div>
@@ -229,20 +240,27 @@ export default function HomePage() {
       <div className="pb-4">
         <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider mb-3">{t("home.todaysSchedule")}</h3>
         <div className="space-y-2">
-          {mockAppointments.map((appt, index) => (
-            <div
-              key={appt.id}
-              className="flex items-center gap-3 glass-card rounded-2xl px-4 py-3 tap-scale animate-fade-in-up"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <span className="text-xs font-mono font-medium text-plum-light w-11">{appt.time}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-plum truncate">{appt.clientName}</p>
-                <p className="text-xs text-plum-light truncate">{appt.service}</p>
+          {appointments.map((appt, index) => (
+            <Link key={appt.id} href={`/appointments/${appt.id}`} className="block">
+              <div
+                className="flex items-center gap-3 glass-card rounded-2xl px-4 py-3 tap-scale animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <span className="text-xs font-mono font-medium text-plum-light w-11">{appt.startTime}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-plum truncate">{appt.client.name}</p>
+                  <p className="text-xs text-plum-light truncate">{appt.services.map((s: any) => s.service.name).join(", ")}</p>
+                </div>
+                <StatusBadge status={appt.status} />
               </div>
-              <StatusBadge status={appt.status} />
-            </div>
+            </Link>
           ))}
+          {appointments.length === 0 && (
+            <div className="text-center py-8 glass-card rounded-2xl">
+              <p className="text-sm text-plum-light">No hay citas para hoy</p>
+              <Link href="/appointments/new" className="text-xs text-rose font-semibold mt-2 block underline">Agendar la primera</Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -273,13 +291,14 @@ function StatCard({
 
 function StatusBadge({ status }: { status: string }) {
   const styles = {
-    confirmed: "bg-green-50/80 text-green-700 border border-green-200/50",
-    pending: "bg-amber-50/80 text-amber-700 border border-amber-200/50",
-    completed: "bg-plum/5 text-plum-light border border-plum/10",
+    CONFIRMED: "bg-green-50/80 text-green-700 border border-green-200/50",
+    PENDING: "bg-amber-50/80 text-amber-700 border border-amber-200/50",
+    COMPLETED: "bg-plum/5 text-plum-light border border-plum/10",
+    CANCELLED: "bg-rose-50/80 text-rose-700 border border-rose-200/50",
   };
   return (
-    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${styles[status as keyof typeof styles]}`}>
-      {status}
+    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${styles[status as keyof typeof styles] || "bg-gray-100"}`}>
+      {status.toLowerCase()}
     </span>
   );
 }
