@@ -1,26 +1,76 @@
 "use client";
 
-import { useState } from "react";
-import { allAppointments, Appointment, teamMembers } from "@/lib/mockData";
+import { useState, useEffect } from "react";
+import { teamMembers } from "@/lib/mockData";
 import { Plus, MessageCircle, Filter, Phone, Users } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePlan } from "@/context/PlanContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
+interface AppointmentService {
+  id: string;
+  serviceId: string;
+  priceAtTimeOfBooking: number;
+  service: {
+    name: string;
+    duration: number;
+  };
+}
+
+interface AppointmentData {
+  id: string;
+  businessId: string;
+  clientId: string;
+  teamMemberId: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  totalAmount: number;
+  notes: string | null;
+  client: {
+    id: string;
+    name: string;
+    phone: string | null;
+  };
+  services: AppointmentService[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function AppointmentsPage() {
   const { t } = useLanguage();
   const { isStudio } = usePlan();
   const [filter, setFilter] = useState<string>("all");
   const [teamFilter, setTeamFilter] = useState<string>("all");
+  const [appointments, setAppointments] = useState<AppointmentData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      try {
+        const res = await fetch("/api/appointments");
+        if (res.ok) {
+          const data = await res.json();
+          setAppointments(data.appointments || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAppointments();
+  }, []);
 
   let filtered =
     filter === "all"
-      ? allAppointments
-      : allAppointments.filter((a) => a.status === filter);
+      ? appointments
+      : appointments.filter((a) => a.status.toLowerCase() === filter);
 
   if (teamFilter !== "all" && isStudio) {
-    filtered = filtered.filter((a) => a.assignedTo === teamFilter);
+    filtered = filtered.filter((a) => a.teamMemberId === teamFilter);
   }
 
   const filterTabs = [
@@ -106,11 +156,17 @@ export default function AppointmentsPage() {
 
       {/* Appointment Cards */}
       <div className="space-y-3 pb-4">
-        {filtered.map((appt, index) => (
-          <div key={appt.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
-            <AppointmentCard appointment={appt} />
-          </div>
-        ))}
+        {loading ? (
+          <div className="text-center py-8 text-plum-light text-sm">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-8 text-plum-light text-sm">No appointments found</div>
+        ) : (
+          filtered.map((appt, index) => (
+            <div key={appt.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
+              <AppointmentCard appointment={appt} />
+            </div>
+          ))
+        )}
       </div>
 
       {/* FAB - links to new appointment page */}
@@ -124,60 +180,56 @@ export default function AppointmentsPage() {
   );
 }
 
-function AppointmentCard({ appointment }: { appointment: Appointment }) {
-  const assignedMember = teamMembers.find((m) => m.id === appointment.assignedTo);
+function AppointmentCard({ appointment }: { appointment: AppointmentData }) {
+  const statusLower = appointment.status.toLowerCase() as "confirmed" | "pending" | "completed";
+  const serviceName = appointment.services.map((s) => s.service.name).join(", ");
+  const totalDuration = appointment.services.reduce((sum, s) => sum + s.service.duration, 0);
+  const durationStr = totalDuration >= 60
+    ? `${Math.floor(totalDuration / 60)}h ${totalDuration % 60 > 0 ? `${totalDuration % 60}min` : ""}`
+    : `${totalDuration}min`;
 
   const statusStyles = {
     confirmed: "border-l-green-400",
     pending: "border-l-amber-400",
     completed: "border-l-plum-light/40",
+    cancelled: "border-l-red-400",
   };
 
   const statusBadge = {
     confirmed: "bg-green-50/80 text-green-700 border border-green-200/50",
     pending: "bg-amber-50/80 text-amber-700 border border-amber-200/50",
     completed: "bg-gray-50/80 text-gray-600 border border-gray-200/50",
+    cancelled: "bg-red-50/80 text-red-600 border border-red-200/50",
   };
 
   return (
     <Link href={`/appointments/${appointment.id}`}>
       <div
-        className={`glass-card-solid rounded-2xl p-4 premium-shadow border-l-4 tap-scale ${statusStyles[appointment.status]}`}
+        className={`glass-card-solid rounded-2xl p-4 premium-shadow border-l-4 tap-scale ${statusStyles[statusLower] || "border-l-gray-300"}`}
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose/25 to-rose-light/35 flex items-center justify-center text-rose-dark font-bold text-xs shadow-sm">
-              {appointment.clientName.split(" ").map((n) => n[0]).join("")}
+              {appointment.client.name.split(" ").map((n) => n[0]).join("")}
             </div>
             <div>
-              <p className="font-semibold text-sm text-plum">{appointment.clientName}</p>
-              <p className="text-xs text-plum-light">{appointment.service}</p>
+              <p className="font-semibold text-sm text-plum">{appointment.client.name}</p>
+              <p className="text-xs text-plum-light">{serviceName}</p>
             </div>
           </div>
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge[appointment.status]}`}>
-            {appointment.status}
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge[statusLower] || "bg-gray-50/80 text-gray-600"}`}>
+            {statusLower}
           </span>
         </div>
 
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-rose-light/15">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono font-semibold text-plum">{appointment.time}</span>
-            <span className="text-xs text-plum-light">{appointment.duration}</span>
-            {assignedMember && (
-              <div className="flex items-center gap-1">
-                <div
-                  className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[7px] font-bold"
-                  style={{ backgroundColor: assignedMember.color }}
-                >
-                  {assignedMember.name[0]}
-                </div>
-                <span className="text-[10px] text-plum-light">{assignedMember.name}</span>
-              </div>
-            )}
+            <span className="text-xs font-mono font-semibold text-plum">{appointment.startTime}</span>
+            <span className="text-xs text-plum-light">{durationStr}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-rose">€{appointment.price}</span>
-            {appointment.status !== "completed" && (
+            <span className="font-bold text-sm text-rose">€{appointment.totalAmount}</span>
+            {statusLower !== "completed" && (
               <div className="flex gap-1.5">
                 <button className="w-7 h-7 rounded-full bg-green-50/80 backdrop-blur-sm flex items-center justify-center text-green-600 hover:bg-green-100 transition-all duration-200 active:scale-90">
                   <MessageCircle size={13} />
