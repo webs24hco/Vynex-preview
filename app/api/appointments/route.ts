@@ -24,15 +24,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
     const status = searchParams.get("status");
+    const teamMemberId = searchParams.get("teamMemberId");
 
     const appointments = await prisma.appointment.findMany({
       where: {
         businessId,
         ...(date && { date: new Date(date) }),
         ...(status && { status: status.toUpperCase() as any }),
+        ...(teamMemberId && { teamMemberId }),
       },
       include: {
         client: true,
+        teamMember: true,
         services: {
           include: { service: true },
         },
@@ -98,6 +101,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // If teamMemberId is provided, verify it belongs to the same business
+    if (teamMemberId) {
+      const teamMember = await prisma.teamMember.findFirst({
+        where: { id: teamMemberId, businessId },
+      });
+      if (!teamMember) {
+        return NextResponse.json(
+          { error: "Invalid team member" },
+          { status: 400 }
+        );
+      }
+    }
+
     const totalAmount = serviceIds.reduce(
       (sum: number, s: { serviceId: string; price: number }) => sum + s.price,
       0
@@ -122,6 +138,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         client: true,
+        teamMember: true,
         services: { include: { service: true } },
       },
     });

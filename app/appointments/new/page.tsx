@@ -1,24 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, User, Scissors, Calendar, Clock, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, User, Scissors, Calendar, Clock, FileText, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { clients, services } from "@/lib/mockData";
+import { usePlan } from "@/context/PlanContext";
+
+interface ClientData {
+  id: string;
+  name: string;
+  phone: string | null;
+}
+
+interface ServiceData {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+  category: string | null;
+}
+
+interface TeamMemberData {
+  id: string;
+  name: string;
+  role: string;
+  isActive: boolean;
+}
 
 export default function NewAppointmentPage() {
   const { t } = useLanguage();
+  const { isStudio } = usePlan();
   const router = useRouter();
   const [clientId, setClientId] = useState("");
   const [serviceId, setServiceId] = useState("");
+  const [teamMemberId, setTeamMemberId] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    // In a real app, save to DB
-    router.push("/appointments");
+  const [clients, setClients] = useState<ClientData[]>([]);
+  const [services, setServices] = useState<ServiceData[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberData[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [clientsRes, servicesRes] = await Promise.all([
+          fetch("/api/clients"),
+          fetch("/api/services"),
+        ]);
+        if (clientsRes.ok) {
+          const data = await clientsRes.json();
+          setClients(data.clients || []);
+        }
+        if (servicesRes.ok) {
+          const data = await servicesRes.json();
+          setServices(data.services || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      }
+    }
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (isStudio) {
+      async function fetchTeam() {
+        try {
+          const res = await fetch("/api/team");
+          if (res.ok) {
+            const data = await res.json();
+            setTeamMembers((data.teamMembers || []).filter((m: TeamMemberData) => m.isActive));
+          }
+        } catch (error) {
+          console.error("Failed to fetch team members:", error);
+        }
+      }
+      fetchTeam();
+    }
+  }, [isStudio]);
+
+  const handleSave = async () => {
+    if (!clientId || !serviceId || !date || !time) return;
+
+    setSaving(true);
+    const selectedService = services.find((s) => s.id === serviceId);
+    if (!selectedService) return;
+
+    // Calculate end time based on service duration
+    const [hours, minutes] = time.split(":").map(Number);
+    const startMinutes = hours * 60 + minutes;
+    const endMinutes = startMinutes + selectedService.duration;
+    const endHours = Math.floor(endMinutes / 60);
+    const endMins = endMinutes % 60;
+    const endTime = `${endHours.toString().padStart(2, "0")}:${endMins.toString().padStart(2, "0")}`;
+
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId,
+          teamMemberId: teamMemberId || null,
+          date,
+          startTime: time,
+          endTime,
+          notes: notes || null,
+          serviceIds: [{ serviceId: selectedService.id, price: selectedService.price }],
+        }),
+      });
+
+      if (res.ok) {
+        router.push("/appointments");
+      }
+    } catch (error) {
+      console.error("Failed to create appointment:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -75,11 +177,33 @@ export default function NewAppointmentPage() {
             <option value="">{t("appt.selectService")}</option>
             {services.map((service) => (
               <option key={service.id} value={service.id}>
-                {service.name} — €{service.price} ({service.duration})
+                {service.name} — €{service.price} ({service.duration}min)
               </option>
             ))}
           </select>
         </div>
+
+        {/* Team Member Selection (Studio plan only) */}
+        {isStudio && teamMembers.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-plum-light uppercase tracking-wider flex items-center gap-1.5">
+              <Users size={12} />
+              {t("appt.assignTeamMember") || "Assign Team Member"}
+            </label>
+            <select
+              value={teamMemberId}
+              onChange={(e) => setTeamMemberId(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-2xl bg-white/80 backdrop-blur-md border border-white/50 text-sm text-plum focus:outline-none focus:border-rose/40 focus:ring-2 focus:ring-rose/10 transition-all duration-200 shadow-sm appearance-none"
+            >
+              <option value="">{t("appt.noTeamMember") || "No team member (optional)"}</option>
+              {teamMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} — {member.role}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Date & Time Row */}
         <div className="grid grid-cols-2 gap-3">
@@ -129,9 +253,10 @@ export default function NewAppointmentPage() {
       <div className="px-5 py-5 pb-28">
         <button
           onClick={handleSave}
-          className="w-full py-4 bg-gradient-to-r from-rose to-rose-dark text-white text-sm font-semibold rounded-2xl hover:shadow-lg transition-all duration-200 active:scale-[0.97] shadow-md"
+          disabled={saving || !clientId || !serviceId || !date || !time}
+          className="w-full py-4 bg-gradient-to-r from-rose to-rose-dark text-white text-sm font-semibold rounded-2xl hover:shadow-lg transition-all duration-200 active:scale-[0.97] shadow-md disabled:opacity-50"
         >
-          {t("appt.saveAppointment")}
+          {saving ? "Saving..." : t("appt.saveAppointment")}
         </button>
       </div>
     </div>

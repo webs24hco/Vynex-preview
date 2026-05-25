@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { teamMembers } from "@/lib/mockData";
 import { Plus, MessageCircle, Filter, Phone, Users } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -16,6 +15,13 @@ interface AppointmentService {
     name: string;
     duration: number;
   };
+}
+
+interface TeamMemberInfo {
+  id: string;
+  name: string;
+  role: string;
+  isActive: boolean;
 }
 
 interface AppointmentData {
@@ -34,6 +40,7 @@ interface AppointmentData {
     name: string;
     phone: string | null;
   };
+  teamMember: TeamMemberInfo | null;
   services: AppointmentService[];
   createdAt: string;
   updatedAt: string;
@@ -45,6 +52,7 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState<string>("all");
   const [teamFilter, setTeamFilter] = useState<string>("all");
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,6 +72,23 @@ export default function AppointmentsPage() {
     fetchAppointments();
   }, []);
 
+  useEffect(() => {
+    if (isStudio) {
+      async function fetchTeam() {
+        try {
+          const res = await fetch("/api/team");
+          if (res.ok) {
+            const data = await res.json();
+            setTeamMembers((data.teamMembers || []).filter((m: TeamMemberInfo) => m.isActive));
+          }
+        } catch (error) {
+          console.error("Failed to fetch team members:", error);
+        }
+      }
+      fetchTeam();
+    }
+  }, [isStudio]);
+
   let filtered =
     filter === "all"
       ? appointments
@@ -79,6 +104,8 @@ export default function AppointmentsPage() {
     { key: "pending", label: t("appt.pending") },
     { key: "completed", label: t("appt.completed") },
   ];
+
+  const memberColors = ["#DCAE96", "#7BA68C", "#C9A0DC", "#F0C27B", "#E8D5B7", "#A0C4DC", "#DC96B5"];
 
   return (
     <div className="px-5 pt-6 space-y-4">
@@ -114,7 +141,7 @@ export default function AppointmentsPage() {
             >
               {t("appt.allTeam")}
             </button>
-            {teamMembers.filter((m) => m.active).map((member) => (
+            {teamMembers.map((member, index) => (
               <button
                 key={member.id}
                 onClick={() => setTeamFilter(member.id)}
@@ -126,7 +153,7 @@ export default function AppointmentsPage() {
               >
                 <div
                   className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold"
-                  style={{ backgroundColor: member.color }}
+                  style={{ backgroundColor: memberColors[index % memberColors.length] }}
                 >
                   {member.name[0]}
                 </div>
@@ -163,7 +190,7 @@ export default function AppointmentsPage() {
         ) : (
           filtered.map((appt, index) => (
             <div key={appt.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
-              <AppointmentCard appointment={appt} />
+              <AppointmentCard appointment={appt} isStudio={isStudio} />
             </div>
           ))
         )}
@@ -180,8 +207,8 @@ export default function AppointmentsPage() {
   );
 }
 
-function AppointmentCard({ appointment }: { appointment: AppointmentData }) {
-  const statusLower = appointment.status.toLowerCase() as "confirmed" | "pending" | "completed";
+function AppointmentCard({ appointment, isStudio }: { appointment: AppointmentData; isStudio: boolean }) {
+  const statusLower = appointment.status.toLowerCase() as "confirmed" | "pending" | "completed" | "cancelled";
   const serviceName = appointment.services.map((s) => s.service.name).join(", ");
   const totalDuration = appointment.services.reduce((sum, s) => sum + s.service.duration, 0);
   const durationStr = totalDuration >= 60
@@ -215,6 +242,12 @@ function AppointmentCard({ appointment }: { appointment: AppointmentData }) {
             <div>
               <p className="font-semibold text-sm text-plum">{appointment.client.name}</p>
               <p className="text-xs text-plum-light">{serviceName}</p>
+              {isStudio && appointment.teamMember && (
+                <p className="text-[10px] text-purple-600 font-medium mt-0.5 flex items-center gap-1">
+                  <Users size={9} />
+                  {appointment.teamMember.name}
+                </p>
+              )}
             </div>
           </div>
           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusBadge[statusLower] || "bg-gray-50/80 text-gray-600"}`}>

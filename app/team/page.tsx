@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, Plus, Lock, Users, Calendar, MoreVertical, Check } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePlan } from "@/context/PlanContext";
-import { teamMembers } from "@/lib/mockData";
+
+interface TeamMemberData {
+  id: string;
+  businessId: string;
+  name: string;
+  role: string;
+  email: string | null;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const roles = [
   { key: "barber", labelKey: "team.barber" },
@@ -15,12 +26,63 @@ const roles = [
   { key: "esthetician", labelKey: "team.esthetician" },
 ];
 
+const memberColors = ["#DCAE96", "#7BA68C", "#C9A0DC", "#F0C27B", "#E8D5B7", "#A0C4DC", "#DC96B5"];
+
 export default function TeamPage() {
   const { t } = useLanguage();
   const { isStudio } = usePlan();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("stylist");
+  const [teamMembers, setTeamMembers] = useState<TeamMemberData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchTeamMembers = useCallback(async () => {
+    try {
+      const res = await fetch("/api/team");
+      if (res.ok) {
+        const data = await res.json();
+        setTeamMembers(data.teamMembers || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch team members:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isStudio) {
+      fetchTeamMembers();
+    }
+  }, [isStudio, fetchTeamMembers]);
+
+  const handleAddMember = async () => {
+    if (!newName.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), role: newRole }),
+      });
+      if (res.ok) {
+        setNewName("");
+        setNewRole("stylist");
+        setShowAddForm(false);
+        await fetchTeamMembers();
+      }
+    } catch (error) {
+      console.error("Failed to add team member:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getColorForMember = (index: number) => {
+    return memberColors[index % memberColors.length];
+  };
 
   if (!isStudio) {
     return (
@@ -111,10 +173,11 @@ export default function TeamPage() {
               </div>
             </div>
             <button
-              onClick={() => setShowAddForm(false)}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg active:scale-[0.98] transition-all"
+              onClick={handleAddMember}
+              disabled={saving || !newName.trim()}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
             >
-              {t("team.addMember")}
+              {saving ? "Saving..." : t("team.addMember")}
             </button>
           </div>
         </div>
@@ -122,53 +185,61 @@ export default function TeamPage() {
 
       {/* Team Members */}
       <div className="space-y-3">
-        {teamMembers.map((member, index) => (
-          <div
-            key={member.id}
-            className="glass-card-solid rounded-2xl p-4 premium-shadow tap-scale animate-fade-in-up"
-            style={{ animationDelay: `${index * 60}ms` }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md"
-                  style={{ backgroundColor: member.color }}
-                >
-                  {member.name[0]}
-                </div>
-                <div>
-                  <p className="font-semibold text-plum text-sm">{member.name}</p>
-                  <p className="text-xs text-plum-light capitalize">
-                    {t(`team.${member.role}`)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                  member.active
-                    ? "bg-green-50 text-green-700 border border-green-200/50"
-                    : "bg-gray-50 text-gray-500 border border-gray-200/50"
-                }`}>
-                  {member.active && <Check size={8} />}
-                  {member.active ? t("team.active") : "Inactive"}
-                </span>
-                <button className="w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-plum-light hover:text-rose transition-all active:scale-90">
-                  <MoreVertical size={14} />
-                </button>
-              </div>
-            </div>
-
-            {/* Mini schedule preview */}
-            <div className="mt-3 pt-3 border-t border-rose-light/15">
-              <div className="flex items-center gap-2">
-                <Calendar size={12} className="text-plum-light" />
-                <span className="text-[10px] text-plum-light">
-                  {member.active ? "Today: 3 appointments · Next: 11:30 AM" : "No schedule"}
-                </span>
-              </div>
-            </div>
+        {loading ? (
+          <div className="text-center py-8 text-plum-light text-sm">Loading...</div>
+        ) : teamMembers.length === 0 ? (
+          <div className="text-center py-8 text-plum-light text-sm">
+            No team members yet. Add your first collaborator!
           </div>
-        ))}
+        ) : (
+          teamMembers.map((member, index) => (
+            <div
+              key={member.id}
+              className="glass-card-solid rounded-2xl p-4 premium-shadow tap-scale animate-fade-in-up"
+              style={{ animationDelay: `${index * 60}ms` }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md"
+                    style={{ backgroundColor: getColorForMember(index) }}
+                  >
+                    {member.name[0]}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-plum text-sm">{member.name}</p>
+                    <p className="text-xs text-plum-light capitalize">
+                      {t(`team.${member.role}`) !== `team.${member.role}` ? t(`team.${member.role}`) : member.role}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                    member.isActive
+                      ? "bg-green-50 text-green-700 border border-green-200/50"
+                      : "bg-gray-50 text-gray-500 border border-gray-200/50"
+                  }`}>
+                    {member.isActive && <Check size={8} />}
+                    {member.isActive ? t("team.active") : "Inactive"}
+                  </span>
+                  <button className="w-7 h-7 rounded-full bg-white/70 flex items-center justify-center text-plum-light hover:text-rose transition-all active:scale-90">
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Mini schedule preview */}
+              <div className="mt-3 pt-3 border-t border-rose-light/15">
+                <div className="flex items-center gap-2">
+                  <Calendar size={12} className="text-plum-light" />
+                  <span className="text-[10px] text-plum-light">
+                    {member.isActive ? "Today: 3 appointments · Next: 11:30 AM" : "No schedule"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
