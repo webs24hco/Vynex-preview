@@ -1,25 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, User, Phone, Mail, Heart, Calendar } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Heart, Calendar, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { services } from "@/lib/mockData";
 
 export default function NewClientPage() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     phone: "",
     email: "",
-    birthday: "",
-    preferredService: "",
     notes: "",
   });
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.firstName) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          phone: formData.phone,
+          email: formData.email,
+          notes: formData.notes,
+        }),
+      });
+
+      if (res.ok) {
+        router.push("/clients");
+      }
+    } catch (error) {
+      console.error("Error creating client:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,7 +61,7 @@ export default function NewClientPage() {
         </Link>
         <div>
           <h1 className="text-lg font-bold text-plum tracking-tight">{t("clients.newClient")}</h1>
-          <p className="text-xs text-plum-light">Add a new client to your book</p>
+          <p className="text-xs text-plum-light">Añadir un nuevo cliente a tu agenda</p>
         </div>
       </div>
 
@@ -46,7 +73,7 @@ export default function NewClientPage() {
       </div>
 
       {/* Form */}
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 block">
@@ -54,6 +81,7 @@ export default function NewClientPage() {
             </label>
             <input
               type="text"
+              required
               value={formData.firstName}
               onChange={(e) => updateField("firstName", e.target.value)}
               placeholder="María"
@@ -101,34 +129,6 @@ export default function NewClientPage() {
         </div>
 
         <div>
-          <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Calendar size={12} /> {t("clients.birthday")}
-          </label>
-          <input
-            type="date"
-            value={formData.birthday}
-            onChange={(e) => updateField("birthday", e.target.value)}
-            className="w-full px-4 py-3 rounded-xl glass-card-solid border border-white/50 text-sm text-plum focus:outline-none focus:ring-2 focus:ring-rose/30 transition-all"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Heart size={12} /> {t("clients.preferredService")}
-          </label>
-          <select
-            value={formData.preferredService}
-            onChange={(e) => updateField("preferredService", e.target.value)}
-            className="w-full px-4 py-3 rounded-xl glass-card-solid border border-white/50 text-sm text-plum focus:outline-none focus:ring-2 focus:ring-rose/30 transition-all appearance-none"
-          >
-            <option value="">Select service...</option>
-            {services.map((s) => (
-              <option key={s.id} value={s.name}>{s.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
           <label className="text-xs font-medium text-plum-light uppercase tracking-wider mb-1.5 block">
             {t("clients.notes")}
           </label>
@@ -141,13 +141,14 @@ export default function NewClientPage() {
           />
         </div>
 
-        <Link
-          href="/clients"
-          className="w-full flex items-center justify-center py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98] disabled:opacity-70"
         >
-          {t("clients.save")}
-        </Link>
-      </div>
+          {loading ? <Loader2 className="animate-spin" size={20} /> : t("clients.save")}
+        </button>
+      </form>
     </div>
   );
 }
