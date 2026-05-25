@@ -1,99 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-// import prisma from "@/lib/prisma"; // Uncomment when DB is connected
+import prisma from "@/lib/prisma";
+import { createClient } from "@/utils/supabase/server";
 
 // ============================================================
-// GET /api/services - List all services for a business
+// GET /api/services - List all services for the authenticated business
 // ============================================================
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const businessId = searchParams.get("businessId");
-    const category = searchParams.get("category"); // Optional filter
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!businessId) {
+    if (authError || !user) {
       return NextResponse.json(
-        { error: "businessId is required" },
-        { status: 400 }
+        { error: "Unauthorized" },
+        { status: 401 }
       );
     }
 
-    // TODO: Replace mock data with Prisma query
-    // const services = await prisma.service.findMany({
-    //   where: {
-    //     businessId,
-    //     isActive: true,
-    //     ...(category && { category }),
-    //   },
-    //   orderBy: [{ category: "asc" }, { name: "asc" }],
-    // });
+    const businessId = user.id;
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get("category");
 
-    const mockServices = [
-      {
-        id: "svc_mock_001",
+    const services = await prisma.service.findMany({
+      where: {
         businessId,
-        name: "Classic Full Set",
-        duration: 90,
-        price: 85.0,
-        category: "Lashes",
         isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        ...(category ? { category } : {}),
       },
-      {
-        id: "svc_mock_002",
-        businessId,
-        name: "Lash Fill (2 weeks)",
-        duration: 45,
-        price: 45.0,
-        category: "Lashes",
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "svc_mock_003",
-        businessId,
-        name: "Lash Tint",
-        duration: 30,
-        price: 65.0,
-        category: "Lashes",
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "svc_mock_004",
-        businessId,
-        name: "Volume Full Set",
-        duration: 120,
-        price: 150.0,
-        category: "Lashes",
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "svc_mock_005",
-        businessId,
-        name: "Brow Lamination",
-        duration: 45,
-        price: 55.0,
-        category: "Brows",
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+    });
 
-    // Apply optional category filter
-    let filtered = mockServices;
-    if (category) {
-      filtered = filtered.filter(
-        (s) => s.category?.toLowerCase() === category.toLowerCase()
-      );
-    }
-
-    return NextResponse.json({ services: filtered }, { status: 200 });
+    return NextResponse.json({ services }, { status: 200 });
   } catch (error) {
     console.error("Error fetching services:", error);
     return NextResponse.json(
@@ -108,13 +48,27 @@ export async function GET(request: NextRequest) {
 // ============================================================
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const businessId = user.id;
     const body = await request.json();
-    const { businessId, name, duration, price, category } = body;
+    const { name, duration, price, category } = body;
 
     // Validation
-    if (!businessId || !name || !duration || price === undefined) {
+    if (!name || !duration || price === undefined) {
       return NextResponse.json(
-        { error: "businessId, name, duration, and price are required" },
+        { error: "name, duration, and price are required" },
         { status: 400 }
       );
     }
@@ -133,24 +87,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Replace with Prisma create
-    // const service = await prisma.service.create({
-    //   data: { businessId, name, duration, price, category },
-    // });
+    const service = await prisma.service.create({
+      data: {
+        businessId,
+        name,
+        duration,
+        price,
+        category: category || null,
+      },
+    });
 
-    const mockService = {
-      id: `svc_${Date.now()}`,
-      businessId,
-      name,
-      duration,
-      price,
-      category: category || null,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json({ service: mockService }, { status: 201 });
+    return NextResponse.json({ service }, { status: 201 });
   } catch (error) {
     console.error("Error creating service:", error);
     return NextResponse.json(

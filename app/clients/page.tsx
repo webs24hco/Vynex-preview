@@ -1,21 +1,59 @@
 "use client";
 
-import { useState } from "react";
-import { clients } from "@/lib/mockData";
+import { useState, useEffect } from "react";
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 
+interface Client {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  pendingBalance: number;
+  totalSpent: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function ClientsPage() {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const res = await fetch("/api/clients");
+        if (res.ok) {
+          const data = await res.json();
+          setClients(data.clients || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch clients:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchClients();
+  }, []);
 
   const filtered = clients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search) ||
-      c.email.toLowerCase().includes(search.toLowerCase())
+      (c.phone && c.phone.includes(search)) ||
+      (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
   );
+
+  if (loading) {
+    return (
+      <div className="px-5 pt-6 flex items-center justify-center min-h-[50vh]">
+        <div className="text-sm text-plum-light animate-pulse">Loading clients...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-5 pt-6 space-y-4">
@@ -51,7 +89,11 @@ export default function ClientsPage() {
       <div className="space-y-3 pb-4">
         {filtered.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-plum-light">{t("clients.noResults")}</p>
+            <p className="text-sm text-plum-light">
+              {clients.length === 0
+                ? t("clients.noClients") ?? "No clients yet. Add your first client!"
+                : t("clients.noResults")}
+            </p>
           </div>
         ) : (
           filtered.map((client, index) => (
@@ -69,7 +111,7 @@ export default function ClientsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-plum">{client.name}</p>
                     <p className="text-xs text-plum-light truncate">
-                      {client.favoriteService} · {t("clients.lastVisit")} {client.lastVisit}
+                      {client.phone || client.email || "No contact info"}
                     </p>
                   </div>
                   {client.pendingBalance > 0 && (
