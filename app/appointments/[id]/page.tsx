@@ -9,7 +9,8 @@ import { allAppointments, teamMembers } from "@/lib/mockData";
 export default function AppointmentDetailPage() {
   const { t } = useLanguage();
   const params = useParams();
-  const appointment = allAppointments.find((a) => a.id === params.id) || allAppointments[0];
+  const id = params.id as string;
+  const appointment = allAppointments.find((a) => a.id === id) || allAppointments[0];
   const assignedMember = teamMembers.find((m) => m.id === appointment.assignedTo);
 
   const statusColors = {
@@ -110,7 +111,7 @@ export default function AppointmentDetailPage() {
       <div className="space-y-3 pt-2">
         {appointment.status !== "completed" && (
           <Link
-            href="/checkout"
+            href={`/checkout?appointmentId=${id}`}
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
           >
             <CreditCard size={16} />
