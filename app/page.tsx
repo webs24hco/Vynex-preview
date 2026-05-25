@@ -1,6 +1,7 @@
 "use client";
 
-import { todayAppointments, weekOverview } from "@/lib/mockData";
+import { useState, useEffect } from "react";
+import { todayAppointments as mockAppointments, weekOverview as mockWeekOverview } from "@/lib/mockData";
 import {
   DollarSign,
   Clock,
@@ -15,24 +16,99 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
+interface ReportsData {
+  today: {
+    revenue: number;
+    appointmentsTotal: number;
+    completedCount: number;
+    pendingCount: number;
+  };
+  week: {
+    revenue: number;
+    overview: { day: string; appointments: number; revenue: number }[];
+  };
+}
+
 export default function HomePage() {
   const { t } = useLanguage();
-  const totalRevenue = todayAppointments.reduce((sum, a) => sum + a.price, 0);
-  const pendingCount = todayAppointments.filter((a) => a.status === "pending").length;
-  const completedCount = todayAppointments.filter((a) => a.status === "completed").length;
-  const nextAppointment = todayAppointments.find((a) => a.status === "confirmed");
+  const [reportsData, setReportsData] = useState<ReportsData | null>(null);
+  const [businessName, setBusinessName] = useState("Valentina");
+  const [currency, setCurrency] = useState("€");
+
+  // Fetch real data from API on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [reportsRes, businessRes] = await Promise.all([
+          fetch("/api/reports"),
+          fetch("/api/business"),
+        ]);
+
+        if (reportsRes.ok) {
+          const data = await reportsRes.json();
+          setReportsData(data);
+        }
+
+        if (businessRes.ok) {
+          const biz = await businessRes.json();
+          if (biz.businessName) setBusinessName(biz.businessName);
+          if (biz.currency) {
+            const currencySymbols: Record<string, string> = {
+              USD: "$",
+              EUR: "€",
+              GBP: "£",
+              MXN: "$",
+            };
+            setCurrency(currencySymbols[biz.currency] || biz.currency);
+          }
+        }
+      } catch {
+        // Silently fail - use fallback mock data
+      }
+    }
+    fetchData();
+  }, []);
+
+  // Use real data if available, fallback to mock
+  const totalRevenue = reportsData
+    ? reportsData.today.revenue
+    : mockAppointments.reduce((sum, a) => sum + a.price, 0);
+  const completedCount = reportsData
+    ? reportsData.today.completedCount
+    : mockAppointments.filter((a) => a.status === "completed").length;
+  const appointmentsTotal = reportsData
+    ? reportsData.today.appointmentsTotal
+    : mockAppointments.length;
+  const pendingCount = reportsData
+    ? reportsData.today.pendingCount
+    : mockAppointments.filter((a) => a.status === "pending").length;
+  const weekOverview = reportsData
+    ? reportsData.week.overview
+    : mockWeekOverview;
+  const weekTotal = reportsData
+    ? reportsData.week.revenue
+    : mockWeekOverview.reduce((s, d) => s + d.revenue, 0);
+
+  const nextAppointment = mockAppointments.find((a) => a.status === "confirmed");
+
+  // Format today's date
+  const todayFormatted = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <div className="px-5 pt-6 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-plum-light font-medium">Saturday, May 24</p>
+          <p className="text-sm text-plum-light font-medium">{todayFormatted}</p>
           <h1 className="text-2xl font-bold text-plum mt-1 tracking-tight">
-            {t("home.greeting")} <span className="text-rose">Valentina</span> ✨
+            {t("home.greeting")} <span className="text-rose">{businessName}</span> ✨
           </h1>
           <p className="text-sm text-plum-light mt-1">
-            {t("home.appointmentsToday", { count: todayAppointments.length })}
+            {t("home.appointmentsToday", { count: appointmentsTotal })}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -52,13 +128,13 @@ export default function HomePage() {
         <StatCard
           icon={<DollarSign size={18} />}
           label={t("home.todaysRevenue")}
-          value={`€${totalRevenue}`}
+          value={`${currency}${totalRevenue}`}
           color="bg-rose/10 text-rose-dark"
         />
         <StatCard
           icon={<Clock size={18} />}
           label={t("home.completed")}
-          value={`${completedCount}/${todayAppointments.length}`}
+          value={`${completedCount}/${appointmentsTotal}`}
           color="bg-gold/30 text-plum"
         />
         <StatCard
@@ -70,7 +146,7 @@ export default function HomePage() {
         <StatCard
           icon={<TrendingUp size={18} />}
           label={t("home.weekTotal")}
-          value={`€${weekOverview.reduce((s, d) => s + d.revenue, 0)}`}
+          value={`${currency}${weekTotal}`}
           color="bg-plum/5 text-plum"
         />
       </div>
@@ -92,7 +168,7 @@ export default function HomePage() {
               <p className="font-semibold text-plum text-sm">{nextAppointment.clientName}</p>
               <p className="text-xs text-plum-light">{nextAppointment.service} · {nextAppointment.duration}</p>
             </div>
-            <p className="font-bold text-rose text-sm">€{nextAppointment.price}</p>
+            <p className="font-bold text-rose text-sm">{currency}{nextAppointment.price}</p>
           </div>
         </div>
       )}
@@ -129,7 +205,8 @@ export default function HomePage() {
             {weekOverview.map((day) => {
               const maxRev = Math.max(...weekOverview.map(d => d.revenue));
               const height = maxRev > 0 ? (day.revenue / maxRev) * 100 : 0;
-              const isToday = day.day === "Sat";
+              const todayDay = new Date().toLocaleDateString("en-US", { weekday: "short" });
+              const isToday = day.day === todayDay;
               return (
                 <div key={day.day} className="flex flex-col items-center gap-1 flex-1">
                   <div className="w-full flex flex-col items-center justify-end h-16">
@@ -152,7 +229,7 @@ export default function HomePage() {
       <div className="pb-4">
         <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider mb-3">{t("home.todaysSchedule")}</h3>
         <div className="space-y-2">
-          {todayAppointments.map((appt, index) => (
+          {mockAppointments.map((appt, index) => (
             <div
               key={appt.id}
               className="flex items-center gap-3 glass-card rounded-2xl px-4 py-3 tap-scale animate-fade-in-up"

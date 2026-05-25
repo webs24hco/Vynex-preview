@@ -1,20 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, TrendingUp, Users, Scissors, Lock, DollarSign, UserPlus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePlan } from "@/context/PlanContext";
-import { monthlyRevenue, topServicesData, clientRetentionData } from "@/lib/mockData";
+import { monthlyRevenue as mockMonthlyRevenue, topServicesData as mockTopServices, clientRetentionData as mockRetention } from "@/lib/mockData";
 
 type ReportTab = "revenue" | "clients" | "services";
 type TimeRange = "daily" | "weekly" | "monthly";
+
+interface ReportsApiData {
+  today: {
+    revenue: number;
+    appointmentsTotal: number;
+    completedCount: number;
+    pendingCount: number;
+  };
+  week: {
+    revenue: number;
+    overview: { day: string; appointments: number; revenue: number }[];
+  };
+  month: {
+    revenue: number;
+    totalAppointments: number;
+  };
+  monthlyRevenue: { month: string; revenue: number }[];
+  topServices: { name: string; count: number; revenue: number }[];
+  clients: {
+    total: number;
+    newThisMonth: number;
+    avgPerClient: number;
+    activeThisMonth: number;
+  };
+}
 
 export default function ReportsPage() {
   const { t } = useLanguage();
   const { isStudio } = usePlan();
   const [activeTab, setActiveTab] = useState<ReportTab>("revenue");
   const [timeRange, setTimeRange] = useState<TimeRange>("monthly");
+  const [apiData, setApiData] = useState<ReportsApiData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch real reports data
+  useEffect(() => {
+    async function fetchReports() {
+      try {
+        const res = await fetch("/api/reports");
+        if (res.ok) {
+          const data = await res.json();
+          setApiData(data);
+        }
+      } catch {
+        // Silently fail - use mock data
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchReports();
+  }, []);
+
+  // Derive display data from API or fallback to mock
+  const monthlyRevenue = apiData?.monthlyRevenue ?? mockMonthlyRevenue;
+  const topServicesData = apiData?.topServices?.length ? apiData.topServices : mockTopServices;
+  const totalRevenue = apiData?.month?.revenue ?? 48800;
+  const avgPerClient = apiData?.clients?.avgPerClient ?? 112;
+  const totalClients = apiData?.clients?.total ?? mockRetention.totalClients;
+  const newThisMonth = apiData?.clients?.newThisMonth ?? mockRetention.newThisMonth;
+  const activeThisMonth = apiData?.clients?.activeThisMonth ?? 0;
+  const returnRate = totalClients > 0
+    ? Math.round((activeThisMonth / totalClients) * 100)
+    : mockRetention.returnRate;
 
   if (!isStudio) {
     return (
@@ -124,16 +181,20 @@ export default function ReportsPage() {
                 <DollarSign size={16} className="text-rose" />
               </div>
               <p className="text-xs text-plum-light">{t("reports.totalRevenue")}</p>
-              <p className="text-xl font-bold text-plum">€48,800</p>
-              <span className="text-[10px] text-green-600 font-medium">↑ 12% vs last month</span>
+              <p className="text-xl font-bold text-plum">€{totalRevenue.toLocaleString()}</p>
+              {apiData && (
+                <span className="text-[10px] text-green-600 font-medium">This month</span>
+              )}
             </div>
             <div className="glass-card-solid rounded-2xl p-4 premium-shadow">
               <div className="w-8 h-8 rounded-xl bg-gold/30 flex items-center justify-center mb-2">
                 <Users size={16} className="text-plum" />
               </div>
               <p className="text-xs text-plum-light">{t("reports.avgPerClient")}</p>
-              <p className="text-xl font-bold text-plum">€112</p>
-              <span className="text-[10px] text-green-600 font-medium">↑ 5% vs last month</span>
+              <p className="text-xl font-bold text-plum">€{avgPerClient}</p>
+              {apiData && (
+                <span className="text-[10px] text-plum-light font-medium">{activeThisMonth} active clients</span>
+              )}
             </div>
           </div>
 
@@ -141,19 +202,21 @@ export default function ReportsPage() {
           <div className="glass-card-solid rounded-2xl p-4 premium-shadow">
             <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider mb-4">Monthly Revenue</h3>
             <div className="flex items-end justify-between gap-3 h-32">
-              {monthlyRevenue.map((m) => {
+              {monthlyRevenue.map((m, idx) => {
                 const maxRev = Math.max(...monthlyRevenue.map((d) => d.revenue));
-                const height = (m.revenue / maxRev) * 100;
-                const isLast = m.month === "May";
+                const height = maxRev > 0 ? (m.revenue / maxRev) * 100 : 0;
+                const isLast = idx === monthlyRevenue.length - 1;
                 return (
                   <div key={m.month} className="flex flex-col items-center gap-1 flex-1">
-                    <span className="text-[9px] font-medium text-plum-light">€{(m.revenue / 1000).toFixed(1)}k</span>
+                    <span className="text-[9px] font-medium text-plum-light">
+                      {m.revenue > 0 ? `€${(m.revenue / 1000).toFixed(1)}k` : "€0"}
+                    </span>
                     <div className="w-full flex flex-col items-center justify-end h-20">
                       <div
                         className={`w-full max-w-[24px] rounded-lg transition-all ${
                           isLast ? "bg-gradient-to-t from-rose to-rose-light" : "bg-rose-light/40"
                         }`}
-                        style={{ height: `${height}%` }}
+                        style={{ height: `${Math.max(height, 2)}%` }}
                       />
                     </div>
                     <span className={`text-[10px] font-medium ${isLast ? "text-rose" : "text-plum-light"}`}>
@@ -176,7 +239,7 @@ export default function ReportsPage() {
                 <UserPlus size={16} className="text-blue-600" />
               </div>
               <p className="text-xs text-plum-light">{t("reports.newClients")}</p>
-              <p className="text-xl font-bold text-plum">{clientRetentionData.newThisMonth}</p>
+              <p className="text-xl font-bold text-plum">{newThisMonth}</p>
               <span className="text-[10px] text-green-600 font-medium">This month</span>
             </div>
             <div className="glass-card-solid rounded-2xl p-4 premium-shadow">
@@ -184,8 +247,8 @@ export default function ReportsPage() {
                 <RefreshCw size={16} className="text-green-600" />
               </div>
               <p className="text-xs text-plum-light">{t("reports.returnRate")}</p>
-              <p className="text-xl font-bold text-plum">{clientRetentionData.returnRate}%</p>
-              <span className="text-[10px] text-green-600 font-medium">↑ 3% vs last month</span>
+              <p className="text-xl font-bold text-plum">{returnRate}%</p>
+              <span className="text-[10px] text-green-600 font-medium">Active this month</span>
             </div>
           </div>
 
@@ -194,20 +257,20 @@ export default function ReportsPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-plum">Total Clients</span>
-                <span className="font-bold text-plum">{clientRetentionData.totalClients}</span>
+                <span className="font-bold text-plum">{totalClients}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-plum">Avg. Visits per Client</span>
-                <span className="font-bold text-plum">{clientRetentionData.avgVisitsPerClient}</span>
+                <span className="text-sm text-plum">Avg. Revenue per Client</span>
+                <span className="font-bold text-plum">€{avgPerClient}</span>
               </div>
               <div className="w-full h-2 bg-rose-light/20 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-rose to-rose-dark rounded-full"
-                  style={{ width: `${clientRetentionData.returnRate}%` }}
+                  style={{ width: `${Math.min(returnRate, 100)}%` }}
                 />
               </div>
               <p className="text-[10px] text-plum-light text-center">
-                {clientRetentionData.returnRate}% of clients return within 30 days
+                {returnRate}% of clients active this month
               </p>
             </div>
           </div>
@@ -222,7 +285,7 @@ export default function ReportsPage() {
             <div className="space-y-3">
               {topServicesData.map((service, index) => {
                 const maxRevenue = Math.max(...topServicesData.map((s) => s.revenue));
-                const width = (service.revenue / maxRevenue) * 100;
+                const width = maxRevenue > 0 ? (service.revenue / maxRevenue) * 100 : 0;
                 return (
                   <div key={service.name} className="space-y-1">
                     <div className="flex justify-between items-center">

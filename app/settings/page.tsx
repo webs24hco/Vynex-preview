@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Palette, Crown, Lock, Check, FlaskConical, MessageCircle, Users, BarChart3, Globe, Upload, ChevronRight, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,10 +41,53 @@ const planOptions: PlanType[] = ["Free", "Pro", "Studio"];
 export default function SettingsPage() {
   const { t } = useLanguage();
   const router = useRouter();
-  const { theme, setTheme, customBranding, setCustomBranding } = useTheme();
+  const { theme, setTheme, customBranding, setCustomBranding, persistTheme } = useTheme();
   const { plan, setPlan, isPro, isStudio } = usePlan();
   const [customColor, setCustomColor] = useState(customBranding.accentColor);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Fetch business settings on mount
+  useEffect(() => {
+    async function fetchBusinessSettings() {
+      try {
+        const res = await fetch("/api/business");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.businessName) setBusinessName(data.businessName);
+          if (data.plan) {
+            // Map DB plan enum to frontend PlanType
+            const planMap: Record<string, PlanType> = {
+              FREE: "Free",
+              PRO: "Pro",
+              STUDIO: "Studio",
+            };
+            const mappedPlan = planMap[data.plan];
+            if (mappedPlan) setPlan(mappedPlan);
+          }
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+    fetchBusinessSettings();
+  }, [setPlan]);
+
+  const handleSaveBusinessName = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessName }),
+      });
+    } catch {
+      // Silently fail
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -75,6 +118,30 @@ export default function SettingsPage() {
             {t("settings.title")}
           </h1>
           <p className="text-xs text-plum-light">{t("settings.subtitle")}</p>
+        </div>
+      </div>
+
+      {/* Business Name Section */}
+      <div className="glass-card-solid rounded-2xl p-4 premium-shadow space-y-3">
+        <h3 className="text-xs font-semibold text-plum-light uppercase tracking-wider">
+          {t("settings.businessName") || "Business Name"}
+        </h3>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            placeholder="Your business name"
+            className="flex-1 px-3 py-2 rounded-lg glass-card border border-white/50 text-sm text-plum focus:outline-none focus:ring-2 focus:ring-rose/30"
+          />
+          <button
+            type="button"
+            onClick={handleSaveBusinessName}
+            disabled={saving}
+            className="px-4 py-2 rounded-xl bg-rose text-white text-xs font-semibold shadow-sm active:scale-95 transition-all disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : t("settings.save") || "Save"}
+          </button>
         </div>
       </div>
 

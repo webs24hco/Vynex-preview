@@ -89,16 +89,66 @@ interface ThemeContextType {
   colors: ThemeColors;
   customBranding: CustomBranding;
   setCustomBranding: (branding: CustomBranding) => void;
+  persistTheme: (themeName: ThemeName, customColor?: string) => Promise<void>;
+  loading: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeName>("default");
+  const [theme, setThemeState] = useState<ThemeName>("default");
+  const [loading, setLoading] = useState(true);
   const [customBranding, setCustomBranding] = useState<CustomBranding>({
     accentColor: "#DCAE96",
     logoUrl: null,
   });
+
+  // Fetch the persisted theme on mount
+  useEffect(() => {
+    async function fetchTheme() {
+      try {
+        const res = await fetch("/api/business");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.theme) {
+            setThemeState(data.theme as ThemeName);
+          }
+          if (data.themeColor) {
+            setCustomBranding((prev) => ({ ...prev, accentColor: data.themeColor }));
+          }
+        }
+      } catch {
+        // Silently fail - use default theme
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTheme();
+  }, []);
+
+  // Persist theme to the backend
+  const persistTheme = useCallback(async (themeName: ThemeName, customColor?: string) => {
+    try {
+      await fetch("/api/business", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          theme: themeName,
+          ...(customColor && { customColor }),
+        }),
+      });
+    } catch {
+      // Silently fail - theme is still applied locally
+    }
+  }, []);
+
+  const setTheme = useCallback(
+    (newTheme: ThemeName) => {
+      setThemeState(newTheme);
+      persistTheme(newTheme, newTheme === "custom" ? customBranding.accentColor : undefined);
+    },
+    [persistTheme, customBranding.accentColor]
+  );
 
   const getColors = useCallback((): ThemeColors => {
     if (theme === "custom") {
@@ -135,7 +185,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme, customBranding, applyTheme, getColors]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, colors: getColors(), customBranding, setCustomBranding }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        setTheme,
+        colors: getColors(),
+        customBranding,
+        setCustomBranding,
+        persistTheme,
+        loading,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
