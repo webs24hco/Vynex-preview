@@ -72,8 +72,8 @@ function CheckoutContent() {
         }
         const data = await response.json();
         setAppointment(data.appointment);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load appointment");
+      } catch (err: any) {
+        setError(err.message || "Failed to load appointment");
       } finally {
         setIsLoading(false);
       }
@@ -103,8 +103,8 @@ function CheckoutContent() {
       }
 
       setIsPaid(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
+    } catch (err: any) {
+      setError(err.message || "Payment failed");
     } finally {
       setIsProcessing(false);
     }
@@ -119,17 +119,17 @@ function CheckoutContent() {
   // Success state
   if (isPaid && appointment) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-white">
         <div className="animate-scale-in text-center">
-          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-green-50 flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-green-50 flex items-center justify-center shadow-sm">
             <Check size={40} className="text-green-500" />
           </div>
           <h1 className="text-2xl font-bold text-plum mb-2">{t("checkout.success")}</h1>
           <p className="text-plum-light text-sm mb-1">
-            €{appointment.totalAmount.toFixed(2)} received via {selectedMethod}
+            €{appointment.totalAmount.toFixed(2)} recibidos vía {selectedMethod}
           </p>
           <p className="text-xs text-plum-light">
-            {appointment.client.name} · {appointment.services.map((s) => s.service.name).join(", ")}
+            {appointment.client.name} • {appointment.services.map((s) => s.service.name).join(", ")}
           </p>
 
           <div className="space-y-3 mt-8">
@@ -139,42 +139,11 @@ function CheckoutContent() {
             </button>
             <Link
               href="/appointments"
-              className="w-full flex items-center justify-center py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg transition-all"
+              className="w-full flex items-center justify-center py-3.5 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg transition-all active:scale-95"
             >
-              Back to Appointments
+              Volver a la Agenda
             </Link>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Pro plan gate
-  if (!isPro) {
-    return (
-      <div className="min-h-screen px-5 pt-6 pb-28 space-y-5">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/appointments"
-            className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-plum transition-all active:scale-90"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <h1 className="text-lg font-bold text-plum">{t("checkout.title")}</h1>
-        </div>
-
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center mb-4">
-            <Sparkles size={28} className="text-amber-600" />
-          </div>
-          <h2 className="text-lg font-bold text-plum mb-2">Pro Feature</h2>
-          <p className="text-sm text-plum-light mb-6 max-w-xs">Payment processing is available on Pro and Studio plans.</p>
-          <Link
-            href="/plan"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg"
-          >
-            {t("plan.upgradePro")}
-          </Link>
         </div>
       </div>
     );
@@ -183,7 +152,7 @@ function CheckoutContent() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 size={32} className="animate-spin text-rose" />
       </div>
     );
@@ -192,7 +161,7 @@ function CheckoutContent() {
   // Error state
   if (error || !appointment) {
     return (
-      <div className="min-h-screen px-5 pt-6 pb-28 space-y-5">
+      <div className="min-h-screen px-5 pt-6 pb-28 space-y-5 bg-white">
         <div className="flex items-center gap-3">
           <Link
             href="/appointments"
@@ -208,7 +177,7 @@ function CheckoutContent() {
             href="/appointments"
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-rose to-rose-dark text-white font-semibold text-sm shadow-lg"
           >
-            Back to Appointments
+            Ir a la Agenda
           </Link>
         </div>
       </div>
@@ -218,19 +187,19 @@ function CheckoutContent() {
   const total = appointment.totalAmount;
 
   return (
-    <div className="min-h-screen px-5 pt-6 pb-28 space-y-5">
+    <div className="min-h-screen px-5 pt-6 pb-28 space-y-5 bg-gray-50/30">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link
           href={`/appointments/${appointment.id}`}
-          className="w-10 h-10 rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-plum-light hover:text-plum transition-all active:scale-90"
+          className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-plum-light hover:text-plum transition-all active:scale-90 border border-plum/5"
         >
           <ArrowLeft size={18} />
         </Link>
         <div>
           <h1 className="text-lg font-bold text-plum tracking-tight">{t("checkout.title")}</h1>
           <p className="text-xs text-plum-light">
-            {appointment.client.name} · {appointment.services.map((s) => s.service.name).join(", ")}
+            {appointment.client.name} • {appointment.services.map((s) => s.service.name).join(", ")}
           </p>
         </div>
       </div>
@@ -287,9 +256,14 @@ function CheckoutContent() {
         </div>
       </div>
 
-      {/* Error message */}
-      {error && (
-        <p className="text-sm text-red-500 text-center">{error}</p>
+      {/* Sim Mode Notice (if not pro) */}
+      {!isPro && (
+        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-3">
+          <Sparkles className="text-amber-500 flex-shrink-0" size={18} />
+          <p className="text-[11px] text-amber-800 leading-tight">
+            <strong>Modo Demo:</strong> El procesamiento de pagos real es una función Pro, pero estamos simulando el flujo para tu prueba.
+          </p>
+        </div>
       )}
 
       {/* Pay Button */}
@@ -305,10 +279,10 @@ function CheckoutContent() {
         {isProcessing ? (
           <span className="flex items-center justify-center gap-2">
             <Loader2 size={16} className="animate-spin" />
-            Processing...
+            Procesando...
           </span>
         ) : (
-          `${t("checkout.payNow")} · €${total.toFixed(2)}`
+          `${t("checkout.payNow")} • €${total.toFixed(2)}`
         )}
       </button>
     </div>
@@ -319,7 +293,7 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-white">
           <Loader2 size={32} className="animate-spin text-rose" />
         </div>
       }
